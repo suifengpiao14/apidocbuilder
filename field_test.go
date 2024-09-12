@@ -57,3 +57,64 @@ func TestProfileDoc(t *testing.T) {
 	doc := args.Makedown()
 	fmt.Println(doc)
 }
+
+type Account struct {
+	Identify string `json:"identify"`
+	Password string `json:"password"`
+}
+
+func (a Account) Fields() sqlbuilder.Fields {
+	return sqlbuilder.Fields{
+		sqlbuilder.NewField(a.Identify).SetName("identify").SetTitle("账号"),
+		sqlbuilder.NewField(a.Password).SetName("password").SetTitle("密码"),
+		sqlbuilder.NewField("").SetName("createAt").SetTitle("创建时间"),
+	}
+}
+
+type Book struct {
+	Id    int    `json:"id"`
+	Title string `json:"title"`
+}
+
+func (b Book) Fields() sqlbuilder.Fields {
+	return sqlbuilder.Fields{
+		sqlbuilder.NewField(b.Id).SetName("id").SetTitle("用户ID"),
+		sqlbuilder.NewField(b.Title).SetName("title").SetTitle("书名"),
+	}
+}
+
+type User struct {
+	Id       int     `json:"id"`
+	Name     string  `json:"name"`
+	Nickname string  `json:"nickname"`
+	Account  Account `json:"account"`
+	Books    []*Book `json:"books"`
+}
+
+func (u User) Fields() sqlbuilder.Fields {
+	return sqlbuilder.Fields{
+		sqlbuilder.NewField(u.Id).SetName("id").SetTitle("用户ID").SetType(sqlbuilder.Schema_Type_int),
+		sqlbuilder.NewField(u.Name).SetName("name").SetTitle("用户名"),
+		sqlbuilder.NewField(u.Nickname).SetName("nickname").SetTitle("昵称"),
+	}
+}
+
+func TestUser(t *testing.T) {
+	user := User{}
+	fields := apidocbuilder.FieldStructToArray(user)
+	args := apidocbuilder.Fields2DocParams(fields...)
+	doc := args.Makedown()
+	fmt.Println(doc)
+}
+
+func TestStruct2DocName(t *testing.T) {
+	user := User{}
+	fields := user.Fields()
+	fields = append(fields, user.Account.Fields()...)
+	book := Book{}
+	fields = append(fields, book.Fields()...)
+	docFields := apidocbuilder.Struct2DocName(user, fields)
+	args := apidocbuilder.Fields2DocParams(docFields...)
+	doc := args.Makedown()
+	fmt.Println(doc)
+}

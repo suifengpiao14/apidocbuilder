@@ -52,19 +52,20 @@ type DocParams []DocParam
 
 func (args DocParams) Makedown() string {
 	var w bytes.Buffer
-	w.WriteString(`|名称|类型|必填|标题|描述|`)
+	w.WriteString(`|名称|类型|必填|格式|标题|描述|`)
 	w.WriteString("\n")
-	w.WriteString(`|:--|:--|:--|:--|:--|:--|`)
+	w.WriteString(`|:--|:--|:--|:--|:--|:--|:--|`)
 	w.WriteString("\n")
 	for _, arg := range args {
 		description := arg.Description
 		if len(arg.Enums) > 0 {
 			description = fmt.Sprintf("%s(%s)", description, arg.Enums.String())
 		}
-		row := fmt.Sprintf(`|%s|%s|%s|%s|%s|`,
+		row := fmt.Sprintf(`|%s|%s|%s|%s|%s|%s|`,
 			arg.Name,
 			arg.Type,
 			cast.ToString(arg.Required),
+			arg.Format,
 			arg.Title,
 			description,
 		)
