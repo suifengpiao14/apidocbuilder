@@ -34,19 +34,16 @@ type API struct {
 	// 介绍
 	Description string `json:"description"`
 	// 服务
-	Service             Service                `json:"service"`
-	RequestContentType  string                 `json:"requestContentType"` // 内容格式，该头部比较重要且经常使用，单独增加字段
-	RequestHeader       Header                 `json:"requestHeader"`
-	ResponseContentType string                 `json:"responseContentType"` // 内容格式，该头部比较重要且经常使用，单独增加字段
-	ResponseHeader      Header                 `json:"responseHeader"`
-	Query               Query                  `json:"query"`
-	RequestBody         Parameters             `json:"requestBody"`
-	ResponseBody        Parameters             `json:"responseBody"`
-	Examples            []Example              `json:"examples"`
-	Links               Links                  `json:"links"`
-	Scripts             Scripts                `json:"scripts"` // 关联的处理脚本 apifunc 有使用
-	Transfers           pathtransfer.Transfers `json:"transfers"`
-	Flow                string                 `json:"flow"` // 流程
+	Service             Service    `json:"service"`
+	RequestContentType  string     `json:"requestContentType"` // 内容格式，该头部比较重要且经常使用，单独增加字段
+	RequestHeader       Header     `json:"requestHeader"`
+	ResponseContentType string     `json:"responseContentType"` // 内容格式，该头部比较重要且经常使用，单独增加字段
+	ResponseHeader      Header     `json:"responseHeader"`
+	Query               Query      `json:"query"`
+	RequestBody         Parameters `json:"requestBody"`
+	ResponseBody        Parameters `json:"responseBody"`
+	Examples            []Example  `json:"examples"`
+	Links               Links      `json:"links"`
 }
 
 // IsRequestContentTypeJson 判断请求是否为json请求格式
