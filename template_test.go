@@ -20,7 +20,8 @@ func TestHtml(t *testing.T) {
 	api := apidocbuilder.API{Name: "test", Description: "测试"}
 	md, err := apidocbuilder.Markdown(api)
 	require.NoError(t, err)
-	htm := apidocbuilder.Markdown2HTML(md)
+	htm, err := apidocbuilder.Markdown2HTML(md)
+	require.NoError(t, err)
 	s := string(htm)
 	fmt.Println(s)
 }

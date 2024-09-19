@@ -22,6 +22,7 @@ const (
 )
 
 type API struct {
+	Group  string `json:"group"`
 	Domain string `json:"domain"`
 	Scene  string `json:"scene"`
 	Name   string `json:"name"`
@@ -45,6 +46,7 @@ type API struct {
 	ResponseBody        Parameters `json:"responseBody"`
 	Examples            []Example  `json:"examples"`
 	Links               Links      `json:"links"`
+	DocumentRef         string     `json:"documentRef"`
 }
 
 // IsRequestContentTypeJson 判断请求是否为json请求格式
@@ -204,6 +206,27 @@ func (apis APIs) Json() (apisJson string, err error) {
 func (a APIs) Len() int           { return len(a) }
 func (a APIs) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a APIs) Less(i, j int) bool { return a[i].Name < a[j].Name }
+
+func (a APIs) GetGroups() (groups []string) {
+	m := make(map[string]bool)
+	for _, api := range a {
+		if !m[api.Group] {
+			m[api.Group] = true
+			groups = append(groups, api.Group)
+		}
+	}
+	return groups
+}
+
+func (a APIs) GetApis(group string) (apis APIs) {
+	apis = make(APIs, 0)
+	for _, api := range a {
+		if strings.EqualFold(api.Group, group) {
+			apis = append(apis, api)
+		}
+	}
+	return apis
+}
 
 type Header Parameters
 
@@ -553,6 +576,7 @@ type Service struct {
 	Variables Variables `json:"variables"`
 	Navigates Navigates `json:"navigates"`
 	Document  string    `json:"document"`
+	Apis      APIs      `json:"apis"`
 }
 
 func (s *Service) AddServer(servers ...Server) {

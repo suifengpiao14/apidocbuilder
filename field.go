@@ -25,7 +25,7 @@ func Fields2DocParams(fs ...*sqlbuilder.Field) (params Parameters) {
 		}
 
 		param := Parameter{
-			Name:            f.GetDocName(),
+			Fullname:        f.GetDocName(),
 			Required:        dbSchema.Required,
 			AllowEmptyValue: dbSchema.AllowEmpty(),
 			Title:           dbSchema.Title,

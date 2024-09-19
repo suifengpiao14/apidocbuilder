@@ -6,7 +6,6 @@ toolchain go1.22.5
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/gomarkdown/markdown v0.0.0-20240730141124-034f12af3bf6
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cast v1.7.0
 	github.com/stretchr/testify v1.9.0
@@ -16,6 +15,7 @@ require (
 	github.com/suifengpiao14/pathtransfer v0.0.14
 	github.com/suifengpiao14/sqlbuilder v0.1.5
 	github.com/tidwall/gjson v1.17.3
+	github.com/yuin/goldmark v1.7.4
 )
 
 require (
