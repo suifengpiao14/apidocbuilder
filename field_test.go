@@ -54,8 +54,7 @@ func TestProfileDoc(t *testing.T) {
 	profileFields := new(ProfileFields).Builder()
 	fields := apidocbuilder.FieldStructToArray(profileFields)
 	args := apidocbuilder.Fields2DocParams(fields...)
-	doc := args.Makedown()
-	fmt.Println(doc)
+	_ = args
 }
 
 type Account struct {
@@ -99,14 +98,6 @@ func (u User) Fields() sqlbuilder.Fields {
 	}
 }
 
-func TestUser(t *testing.T) {
-	user := User{}
-	fields := apidocbuilder.FieldStructToArray(user)
-	args := apidocbuilder.Fields2DocParams(fields...)
-	doc := args.Makedown()
-	fmt.Println(doc)
-}
-
 func TestStruct2DocName(t *testing.T) {
 	user := User{}
 	fields := user.Fields()
@@ -114,7 +105,9 @@ func TestStruct2DocName(t *testing.T) {
 	book := Book{}
 	fields = append(fields, book.Fields()...)
 	docFields := apidocbuilder.Struct2DocName(user, fields)
-	args := apidocbuilder.Fields2DocParams(docFields...)
-	doc := args.Makedown()
-	fmt.Println(doc)
+	parameters := apidocbuilder.Fields2DocParams(docFields...)
+	api := apidocbuilder.API{
+		RequestBody: parameters,
+	}
+	fmt.Println(api)
 }

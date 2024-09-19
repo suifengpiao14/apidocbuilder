@@ -21,7 +21,7 @@ func ApiDocumentMarkdonwnTplDefault() (tpl *template.Template, err error) {
 	return tpl, nil
 }
 
-type ApiDocument struct {
+type ApiDocument1 struct {
 	Title            string    `json:"title"`
 	Description      string    `json:"description"`
 	Path             string    `json:"path"`
@@ -31,7 +31,7 @@ type ApiDocument struct {
 	OutputParameters DocParams `json:"outputParameters"`
 }
 
-func (doc ApiDocument) Markdown(tpl *template.Template) (out string, err error) {
+func (doc ApiDocument1) Markdown(tpl *template.Template) (out string, err error) {
 	var w bytes.Buffer
 	err = tpl.Execute(&w, doc)
 	if err != nil {
@@ -41,7 +41,7 @@ func (doc ApiDocument) Markdown(tpl *template.Template) (out string, err error) 
 	return out, nil
 }
 
-type DocParam struct {
+type DocParam1 struct {
 	Name        string           `json:"name"`
 	Required    bool             `json:"required,string"`
 	AllowEmpty  bool             `json:"allowEmpty,string"`
@@ -55,7 +55,7 @@ type DocParam struct {
 	RegExp      string           `json:"regExp"`
 }
 
-type DocParams []DocParam
+type DocParams []DocParam1
 
 func (args DocParams) Makedown() string {
 	var w bytes.Buffer

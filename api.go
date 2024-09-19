@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -671,8 +672,7 @@ type Parameter struct {
 	Description     string  `json:"description,omitempty"`
 	Enum            string  `json:"enum,omitempty"`
 	EnumNames       string  `json:"enumNames,omitempty"`
-	UI              string  `json:"-"`
-	Scene           string  `json:"scene"`
+	RegExp          string  `json:"regExp"`         // 验证规则
 	Vocabulary      string  `json:"vocabularyDict"` // 词汇
 }
 
@@ -760,7 +760,6 @@ func (p *Parameters) Add(parameters ...Parameter) {
 	tmp := Parameters(parameters)
 	tmp.FormatField()
 	*p = append(*p, parameters...)
-
 }
 
 // Transfers 收集跟随参数的词汇
@@ -782,6 +781,10 @@ func (ps *Parameters) Transfers(namespace string) (vs pathtransfer.Transfers) {
 	}
 	return vs
 }
+
+const (
+	PARAMETER_ATTR_POSITION_ENUM_HEADER = "header"
+)
 
 func (p *Parameters) Lineschema(id string, withHeader bool) (lineSchema lineschema.Lineschema) {
 
@@ -959,4 +962,45 @@ type Contact struct {
 	Name  string `json:"name"`
 	Phone string `json:"phone"`
 	Email string `json:"email"`
+}
+
+type ApiJson2SchemaOut struct {
+	RequestJsonSchema  string `json:"requestJsonschema"`
+	RequestExample     string `json:"requestExample"`
+	RequestLineSchema  string `json:"requestLineSchema"`
+	ResponseLineSchema string `json:"responseLineSchema"`
+}
+
+func ApiJson2Schema(api API) (out ApiJson2SchemaOut, err error) {
+	parameters := Parameters(api.RequestBody)
+	hp := Parameters(api.RequestHeader)
+	qp := Parameters(api.Query)
+	parameters.Add(hp...)
+	parameters.Add(qp...)
+
+	queryLineSchema := parameters.Lineschema("in", false)
+	b, err := queryLineSchema.JsonSchema()
+	if err != nil {
+		return out, err
+	}
+	out.RequestJsonSchema = string(b)
+	out.RequestExample, err = queryLineSchema.JsonExample()
+	if err != nil {
+		return out, err
+	}
+	out.RequestLineSchema = queryLineSchema.String()
+
+	responseParameter := Parameters(api.ResponseBody)
+	responseLineSchema := responseParameter.Lineschema("out", false)
+	out.ResponseLineSchema = responseLineSchema.String()
+	return out, nil
+}
+
+func makeTitle(description string) (title string) {
+	if description == "" {
+		return ""
+	}
+	reg := regexp.MustCompile("[\u4e00-\u9fa5\\w]+")
+	title = reg.FindString(description)
+	return title
 }

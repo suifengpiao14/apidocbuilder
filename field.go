@@ -10,24 +10,32 @@ import (
 	"github.com/suifengpiao14/sqlbuilder"
 )
 
-func Fields2DocParams(fs ...*sqlbuilder.Field) (params DocParams) {
-	params = make(DocParams, 0)
+func Fields2DocParams(fs ...*sqlbuilder.Field) (params Parameters) {
+	params = make(Parameters, 0)
 	for _, f := range fs {
 		dbSchema := f.Schema
 		if dbSchema == nil {
 			dbSchema = new(sqlbuilder.Schema)
 		}
-		param := DocParam{
-			Name:        f.GetDocName(),
-			Required:    dbSchema.Required,
-			AllowEmpty:  dbSchema.AllowEmpty(),
-			Title:       dbSchema.Title,
-			Type:        "string",
-			Format:      dbSchema.Type.String(),
-			Default:     cast.ToString(dbSchema.Default),
-			Description: dbSchema.Comment,
-			Enums:       dbSchema.Enums,
-			RegExp:      dbSchema.RegExp,
+		enum := make([]string, 0)
+		enumNames := make([]string, 0)
+		for _, v := range dbSchema.Enums {
+			enum = append(enum, cast.ToString(v.Key))
+			enumNames = append(enumNames, v.Title)
+		}
+
+		param := Parameter{
+			Name:            f.GetDocName(),
+			Required:        dbSchema.Required,
+			AllowEmptyValue: dbSchema.AllowEmpty(),
+			Title:           dbSchema.Title,
+			Type:            "string",
+			Format:          dbSchema.Type.String(),
+			Default:         cast.ToString(dbSchema.Default),
+			Description:     dbSchema.Comment,
+			Enum:            strings.Join(enum, ", "),
+			EnumNames:       strings.Join(enumNames, ", "),
+			RegExp:          dbSchema.RegExp,
 		}
 		params = append(params, param)
 	}
