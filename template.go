@@ -144,9 +144,17 @@ func (s ServiceRender) GetCurrentApiContent() (out string, err error) {
 	return string(b), nil
 }
 
-func RenderService(service ServiceRender) (out []byte, err error) {
+func RenderService(serviceRender ServiceRender, currentApiName string) (out []byte, err error) {
+	if currentApiName != "" {
+		api, err := serviceRender.GetApiByName(currentApiName)
+		if err != nil {
+			return nil, err
+		}
+		serviceRender.SetActiveApi(*api)
+	}
+
 	filename := "html_service.html"
-	out, err = RenderHtml(filename, service)
+	out, err = RenderHtml(filename, serviceRender)
 	if err != nil {
 		return nil, err
 	}
