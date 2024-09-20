@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/suifengpiao14/funcs"
 	"github.com/suifengpiao14/lineschema"
 	"github.com/suifengpiao14/lineschemagogenerate"
 	"github.com/suifengpiao14/pathtransfer"
@@ -49,6 +50,27 @@ type Api struct {
 	DocumentRef         string     `json:"documentRef"`
 }
 
+func (api *Api) SetContentTypeIfEmpty(requestContentType, responseContentType string) {
+	if api.RequestContentType == "" {
+		api.RequestContentType = requestContentType
+	}
+	if api.ResponseContentType == "" {
+		api.ResponseContentType = responseContentType
+	}
+}
+func (api *Api) SetContentType(requestContentType, responseContentType string) {
+	api.RequestContentType = requestContentType
+	api.ResponseContentType = responseContentType
+}
+func (api *Api) IsSameMethodAndPath(method, path string) (yes bool) {
+	yes = strings.EqualFold(api.Method, method) && strings.EqualFold(api.Path, path)
+	return yes
+}
+func (api *Api) IsSameName(name string) (yes bool) {
+	yes = strings.EqualFold(api.Name, name)
+	return yes
+}
+
 // IsRequestContentTypeJson 判断请求是否为json请求格式
 func (api Api) IsRequestContentTypeJson() (yes bool) {
 	return api.isJson("request")
@@ -57,6 +79,9 @@ func (api Api) IsRequestContentTypeJson() (yes bool) {
 // IsRequestContentTypeJson 判断返回是否为json请求格式
 func (api Api) IsResponseContentTypeJson() (yes bool) {
 	return api.isJson("response")
+}
+func (api *Api) WithDocumentRefDomain(domain string) {
+	api.DocumentRef = withDomain(domain, api.DocumentRef)
 }
 
 func (api Api) isJson(typ string) (yes bool) {
@@ -141,6 +166,9 @@ func (api *Api) Json() (apiJson string, err error) {
 }
 
 func (api *Api) Init() {
+	if api.Service == nil {
+		api.Service = &Service{}
+	}
 	if api.Service.Servers == nil {
 		api.Service.Servers = make(Servers, 0)
 	}
@@ -164,6 +192,10 @@ func (api *Api) Init() {
 	}
 	if api.Examples == nil {
 		api.Examples = make([]Example, 0)
+	}
+	if api.Name == "" { // 设置名称，确保名称一定存在
+		path := strings.ReplaceAll(strings.Trim(api.Path, "/"), "/", "_")
+		api.Name = strings.ToLower(funcs.ToLowerCamel(path))
 	}
 
 }
@@ -201,6 +233,32 @@ func (api *Api) GetRequestResponseSchemaStructs(namespace string) (reqSchemaStru
 }
 
 type Apis []Api
+
+var ERROR_NOT_FOUND_API = errors.New("not found api")
+
+func (apis Apis) GetApi(method string, path string) (api *Api, err error) {
+	for i := 0; i < len(apis); i++ {
+		if apis[i].IsSameMethodAndPath(method, path) {
+			return &apis[i], nil
+		}
+	}
+	err = errors.WithMessagef(ERROR_NOT_FOUND_API, "method:%s,path:%s", method, path)
+	return nil, err
+}
+func (apis Apis) SetContentTypeIfEmpty(requestContentType, responseContentType string) {
+	for i := 0; i < len(apis); i++ {
+		apis[i].SetContentTypeIfEmpty(requestContentType, responseContentType)
+	}
+}
+func (apis Apis) GetApiByName(apiName string) (api *Api, err error) {
+	for i := 0; i < len(apis); i++ {
+		if apis[i].IsSameName(apiName) {
+			return &apis[i], nil
+		}
+	}
+	err = errors.WithMessagef(ERROR_NOT_FOUND_API, "api name:%s", apiName)
+	return nil, err
+}
 
 func (apis Apis) Json() (apisJson string, err error) {
 	b, err := json.Marshal(apis)
@@ -241,13 +299,20 @@ func (a *Apis) Append(apis ...Api) *Apis {
 	if *a == nil {
 		*a = Apis{}
 	}
+	Apis(apis).Init()
 	*a = append(*a, apis...)
 	return a
+}
+
+func (a Apis) Init() {
+	for i := 0; i < len(a); i++ {
+		(a)[i].Init()
+	}
 }
 func (a *Apis) WithDocumentRefDomain(domain string) *Apis {
 	for i := 0; i < len(*a); i++ {
 		api := &(*a)[i]
-		api.DocumentRef = withDomain(domain, api.DocumentRef)
+		api.WithDocumentRefDomain(domain)
 	}
 
 	return a
@@ -417,49 +482,6 @@ func (v *Navigates) Json() (jsonStr string, err error) {
 	return jsonStr, err
 }
 
-type Server struct {
-	// 服务器名称
-	Name string `json:"name"`
-
-	Title string `json:"title"`
-	// url地址
-	URL string `json:"url"`
-	// 服务器IP
-	IP string `json:"ip"`
-	// 介绍
-	Description string `json:"description"`
-	// 代理地址
-	Proxy string `json:"proxy"`
-	// 扩展字段
-	ExtensionIds string `json:"extensionIds"`
-}
-
-type Servers []Server
-
-func (s Servers) GetByName(name string) (server Server, exists bool) {
-	for _, server := range s {
-		if server.Name == name {
-			return server, true
-		}
-	}
-	return server, false
-}
-
-func (s Servers) GetFirst() (server Server) {
-	if len(s) > 0 {
-		return s[0]
-	}
-	return server
-}
-func (s Servers) Json() (str string, err error) {
-	b, err := json.Marshal(s)
-	if err != nil {
-		return "", err
-	}
-	str = string(b)
-	return str, nil
-}
-
 const (
 	LANGUAGE_BASH = "bash"
 )
@@ -583,119 +605,6 @@ func (s *Scripts) Languages() (languages []string, err error) {
 	}
 	sort.Strings(languages)
 	return languages, nil
-}
-
-type Service struct {
-	Name string `json:"name"`
-	// 服务标识
-	Servers Servers `json:"servers"`
-	// 标题
-	Title string `json:"title"`
-	// 介绍
-	Description string `json:"description"`
-	// 版本
-	Version string `json:"version"`
-	// 联系人
-	Contacts []Contact `json:"contacts"`
-	// 协议
-	License string `json:"license"`
-	// 鉴权
-	Security string `json:"security"`
-	// 前置请求脚本
-	RequestPreScript Scripts `json:"requestPreScript"`
-	// 后置请求脚本
-	RequestPostScript Scripts `json:"requestPostScript"`
-	// json字符串
-	Variables   Variables `json:"variables"`
-	Navigates   Navigates `json:"navigates"`
-	DocumentRef string    `json:"documentRef"`
-	Apis        Apis      `json:"apis"`
-}
-
-func (s *Service) AddServer(servers ...Server) {
-	if s.Servers == nil {
-		s.Servers = make([]Server, 0)
-	}
-
-	for _, server := range servers {
-		if server.Title == "" {
-			server.Title = makeTitle(server.Description)
-		}
-		s.Servers = append(s.Servers, server)
-	}
-
-	// 去重
-	m := make(map[string]Server)
-	for _, server := range s.Servers {
-		m[server.Name] = server
-	}
-	newServers := make([]Server, 0)
-	for _, server := range m {
-		newServers = append(newServers, server)
-	}
-	s.Servers = newServers
-
-}
-
-func (s *Service) AddConcat(concats ...Contact) {
-	if s.Contacts == nil {
-		s.Contacts = make([]Contact, 0)
-	}
-	s.Contacts = append(s.Contacts, concats...)
-}
-
-func (s *Service) AddVariable(variables ...Variable) {
-	if s.Variables == nil {
-		s.Variables = make([]Variable, 0)
-	}
-	s.Variables = append(s.Variables, variables...)
-}
-
-func (s *Service) WithDocumentRefDomain(domain string) *Service {
-	s.DocumentRef = withDomain(domain, s.DocumentRef)
-	return s
-}
-
-func withDomain(domain string, path string) string {
-	if path == "" {
-		return path
-	}
-	if strings.HasPrefix(path, "http") {
-		return path
-	}
-	return fmt.Sprintf("%s%s", domain, path)
-
-}
-func (s *Service) AddNavigate(navigates ...Navigate) {
-	if s.Navigates == nil {
-		s.Navigates = make(Navigates, 0)
-	}
-	for _, nav := range navigates {
-		if nav.Route == "" {
-			nav.Route = nav.Doc
-			lastSlashIndex := strings.LastIndex(nav.Route, "/")
-			if lastSlashIndex > -1 {
-				nav.Route = nav.Route[lastSlashIndex:]
-			}
-			firstDotIndex := strings.Index(nav.Route, ".")
-			if firstDotIndex > -1 {
-				nav.Route = nav.Route[:firstDotIndex]
-			}
-			nav.Route = fmt.Sprintf("/%s", strings.Trim(nav.Route, "/"))
-		}
-		s.Navigates = append(s.Navigates, nav)
-	}
-
-	// 去重
-	m := make(map[string]Navigate)
-	for _, navigate := range s.Navigates {
-		m[navigate.Name] = navigate
-	}
-	newNavigates := make([]Navigate, 0)
-	for _, server := range m {
-		newNavigates = append(newNavigates, server)
-	}
-	s.Navigates = newNavigates
 }
 
 type Example struct {

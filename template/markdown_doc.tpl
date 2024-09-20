@@ -2,8 +2,6 @@
 **简要描述:**
 > {{.Description}}
 
-**服务文档**:{{if .Service }} {{.Service.DocumentRef}}{{end}}
-
 **协议:**
 - ***路径:*** {{.Path}}
 - ***方法:*** {{.Method}}
@@ -11,19 +9,21 @@
 {{ if .Service -}}
 
 **服务部署:**
-|名称|URL|IP|http代理|说明|
+|名称|URL|说明|IP|http代理|
 |:--|:--|:--|:--|:--|
 {{range $server:= .Service.Servers -}}
-|{{$server.Name}}|{{$server.URL}}|{{$server.IP}}|{{$server.Proxy}}|{{$server.Description}}|
+|{{$server.Name}}|{{$server.URL}}|{{$server.Description}}|{{$server.IP}}|{{$server.Proxy}}|
+{{end}}
 {{- end}}
 
-{{- end}}
 
-### 请求参数
+### 请求
 
-{{if .RequestHeader -}}
+***请求格式：*** {{.RequestContentType}}
 
-**请求Header头参数**
+{{if .RequestHeader }}
+
+**请求Header头**
 |参数名|类型|格式|必选|可空|标题|说明|默认值|示例|
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|
 {{range $param:= .RequestHeader -}}
@@ -34,7 +34,7 @@
 
 {{if .Query -}}
 
-**请求Query参数**
+**请求Query**
 |参数名|类型|格式|必选|可空|标题|说明|默认值|示例|
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|
 {{range $param:= .Query -}}
@@ -45,7 +45,7 @@
 
 {{if .RequestBody -}}
 
-**请求Body参数**
+**请求Body**
 |参数名|类型|格式|必选|可空|标题|说明|默认值|示例|
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|
 {{range $param:= .RequestBody -}}
@@ -54,9 +54,11 @@
 
 {{- end}}
 
-### 响应参数
+### 响应
 
-{{if .ResponseHeader -}}
+***响应格式：*** {{.ResponseContentType}}
+
+{{if .ResponseHeader }}
 
 **响应Header头参数**
 |参数名|类型|格式|必选|可空|标题|说明|默认值|示例|

@@ -5,11 +5,11 @@
 
 ## 服务部署
 
-|名称|URL|IP|http代理|说明|
+|名称|URL|说明|IP|http代理|
 |:--|:--|:--|:--|:--|
 {{- if .Servers -}}
 {{range $server:= .Servers }}
-|{{$server.Name}}|{{$server.URL}}|{{$server.IP}}|{{$server.Proxy}}|{{$server.Description}}|
+|{{$server.Name}}|{{$server.URL}}|{{$server.Description}}|{{$server.IP}}|{{$server.Proxy}}|
 {{- end}}
 
 {{- end}}
@@ -21,11 +21,12 @@
 {{range $group:= .Apis.GetGroups -}}
 
 {{$subApis:= $apis.GetByGroups $group}}
-
+**{{$group}}**
 {{range $api:= $subApis -}}
 - [{{$api.TitleOrDescription}}]({{$api.DocumentRef}})
 {{ end}}
 
+------
 
 
 

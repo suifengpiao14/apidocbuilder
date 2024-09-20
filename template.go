@@ -102,3 +102,54 @@ func Markdown2HTML(markdownContent []byte) (out []byte, err error) {
 
 	return out, nil
 }
+
+type ServiceRender struct {
+	Service
+	activeApi *Api `json:"-"`
+}
+
+func (s *ServiceRender) SetActiveApi(api Api) { // 渲染html时使用
+	s.activeApi = &api
+}
+func (s ServiceRender) GetActiveApi() *Api { // 渲染html时使用
+	if s.activeApi == nil && len(s.Apis) > 0 {
+		return &s.Apis[0]
+	}
+	return s.activeApi
+}
+func (s ServiceRender) IsActiveApi(api Api) bool { // 判断是否是当前api
+	return s.activeApi.IsSameMethodAndPath(api.Method, api.Path)
+}
+
+func (s ServiceRender) ActiveClass(api Api, activeCalss string) (out string) { // ActiveClass判断是否是当前api 是则返回 activeCalss，否则返回空字符串
+	if s.IsActiveApi(api) {
+		return activeCalss
+	}
+	return ""
+}
+
+func (s ServiceRender) GetCurrentApiContent() (out string, err error) {
+	currentApi := s.GetActiveApi()
+	if currentApi == nil {
+		return "", nil
+	}
+	b, err := Api2Markdown(*currentApi)
+	if err != nil {
+		return "", err
+	}
+	b, err = Markdown2HTML(b)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func RenderService(service ServiceRender) (out []byte, err error) {
+	filename := "html_service.html"
+	out, err = RenderHtml(filename, service)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
