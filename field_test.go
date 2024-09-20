@@ -106,7 +106,7 @@ func TestStruct2DocName(t *testing.T) {
 	fields = append(fields, book.Fields()...)
 	docFields := apidocbuilder.Struct2DocName(user, fields)
 	parameters := apidocbuilder.Fields2DocParams(docFields...)
-	api := apidocbuilder.API{
+	api := apidocbuilder.Api{
 		RequestBody: parameters,
 	}
 	fmt.Println(api)

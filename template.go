@@ -59,13 +59,20 @@ func RenderHtml(filename string, data any) (content []byte, err error) {
 }
 
 const (
-	TPL_NAME_MARKDOWN_DOC  = "markdownDoc"
-	TPL_NAME_MARKDOWN_LIST = "markdownList"
-	TPL_NAME_HTML_DOC      = "htmlDoc"
+	TPL_NAME_MARKDOWN_DOC     = "markdownDoc"
+	TPL_NAME_MARKDOWN_SERVICE = "markdownService"
+	TPL_NAME_HTML_DOC         = "htmlDoc"
 )
 
-func Markdown(api API) (out []byte, err error) {
+func Api2Markdown(api Api) (out []byte, err error) {
 	out, err = ExecTpl(TPL_NAME_MARKDOWN_DOC, api)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+func Service2Markdown(service Service) (out []byte, err error) {
+	out, err = ExecTpl(TPL_NAME_MARKDOWN_SERVICE, service)
 	if err != nil {
 		return nil, err
 	}

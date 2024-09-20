@@ -21,7 +21,7 @@ const (
 	Header_Value_Content_Type_Json = "application/json"
 )
 
-type API struct {
+type Api struct {
 	Group  string `json:"group"`
 	Domain string `json:"domain"`
 	Scene  string `json:"scene"`
@@ -36,7 +36,7 @@ type API struct {
 	// 介绍
 	Description string `json:"description"`
 	// 服务
-	Service             Service    `json:"service"`
+	Service             *Service   `json:"service"`
 	RequestContentType  string     `json:"requestContentType"` // 内容格式，该头部比较重要且经常使用，单独增加字段
 	RequestHeader       Header     `json:"requestHeader"`
 	ResponseContentType string     `json:"responseContentType"` // 内容格式，该头部比较重要且经常使用，单独增加字段
@@ -50,16 +50,16 @@ type API struct {
 }
 
 // IsRequestContentTypeJson 判断请求是否为json请求格式
-func (api API) IsRequestContentTypeJson() (yes bool) {
+func (api Api) IsRequestContentTypeJson() (yes bool) {
 	return api.isJson("request")
 }
 
 // IsRequestContentTypeJson 判断返回是否为json请求格式
-func (api API) IsResponseContentTypeJson() (yes bool) {
+func (api Api) IsResponseContentTypeJson() (yes bool) {
 	return api.isJson("response")
 }
 
-func (api API) isJson(typ string) (yes bool) {
+func (api Api) isJson(typ string) (yes bool) {
 	value := api.RequestContentType
 	if strings.EqualFold(typ, "response") {
 		value = api.ResponseContentType
@@ -70,7 +70,15 @@ func (api API) isJson(typ string) (yes bool) {
 	return yes
 }
 
-func (api API) CURLExample() (curlExample string, err error) {
+func (api Api) TitleOrDescription() (titleOrDescription string) {
+	if api.Title != "" {
+		return api.Title
+	}
+	return api.Description
+
+}
+
+func (api Api) CURLExample() (curlExample string, err error) {
 	var w bytes.Buffer
 	w.WriteString("curl ")
 	u := url.URL{
@@ -123,7 +131,7 @@ func (api API) CURLExample() (curlExample string, err error) {
 	return curlExample, nil
 }
 
-func (api *API) Json() (apiJson string, err error) {
+func (api *Api) Json() (apiJson string, err error) {
 	b, err := json.Marshal(api)
 	if err != nil {
 		return "", err
@@ -132,7 +140,7 @@ func (api *API) Json() (apiJson string, err error) {
 	return apiJson, nil
 }
 
-func (api *API) Init() {
+func (api *Api) Init() {
 	if api.Service.Servers == nil {
 		api.Service.Servers = make(Servers, 0)
 	}
@@ -161,7 +169,7 @@ func (api *API) Init() {
 }
 
 // GetRequestResponseLineschema 获取输入输出lineschema
-func (api *API) GetRequestResponseLineschema() (reqLineschema *lineschema.Lineschema, respLineschema *lineschema.Lineschema, err error) {
+func (api *Api) GetRequestResponseLineschema() (reqLineschema *lineschema.Lineschema, respLineschema *lineschema.Lineschema, err error) {
 	schemas, err := ApiJson2Schema(*api)
 	if err != nil {
 		return nil, nil, err
@@ -178,7 +186,7 @@ func (api *API) GetRequestResponseLineschema() (reqLineschema *lineschema.Linesc
 }
 
 // GetRequestResponseSchemaStructs 获取接口输入输出schema 结构体
-func (api *API) GetRequestResponseSchemaStructs(namespace string) (reqSchemaStructs lineschemagogenerate.Structs, rspSchemaStructs lineschemagogenerate.Structs, err error) {
+func (api *Api) GetRequestResponseSchemaStructs(namespace string) (reqSchemaStructs lineschemagogenerate.Structs, rspSchemaStructs lineschemagogenerate.Structs, err error) {
 	reqLineschema, respLineschema, err := api.GetRequestResponseLineschema()
 	if err != nil {
 		return nil, nil, err
@@ -192,9 +200,9 @@ func (api *API) GetRequestResponseSchemaStructs(namespace string) (reqSchemaStru
 	return reqSchemaStructs, rspSchemaStructs, nil
 }
 
-type APIs []API
+type Apis []Api
 
-func (apis APIs) Json() (apisJson string, err error) {
+func (apis Apis) Json() (apisJson string, err error) {
 	b, err := json.Marshal(apis)
 	if err != nil {
 		return "", err
@@ -203,11 +211,11 @@ func (apis APIs) Json() (apisJson string, err error) {
 	return apisJson, nil
 }
 
-func (a APIs) Len() int           { return len(a) }
-func (a APIs) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a APIs) Less(i, j int) bool { return a[i].Name < a[j].Name }
+func (a Apis) Len() int           { return len(a) }
+func (a Apis) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a Apis) Less(i, j int) bool { return a[i].Name < a[j].Name }
 
-func (a APIs) GetGroups() (groups []string) {
+func (a Apis) GetGroups() (groups []string) {
 	m := make(map[string]bool)
 	for _, api := range a {
 		if !m[api.Group] {
@@ -218,14 +226,39 @@ func (a APIs) GetGroups() (groups []string) {
 	return groups
 }
 
-func (a APIs) GetApis(group string) (apis APIs) {
-	apis = make(APIs, 0)
-	for _, api := range a {
-		if strings.EqualFold(api.Group, group) {
-			apis = append(apis, api)
+func (a Apis) GetByGroups(groups ...string) (apis Apis) {
+	apis = make(Apis, 0)
+	for _, group := range groups {
+		for _, api := range a {
+			if strings.EqualFold(api.Group, group) {
+				apis = append(apis, api)
+			}
 		}
 	}
 	return apis
+}
+func (a *Apis) Append(apis ...Api) *Apis {
+	if *a == nil {
+		*a = Apis{}
+	}
+	*a = append(*a, apis...)
+	return a
+}
+func (a *Apis) WithDocumentRefDomain(domain string) *Apis {
+	for i := 0; i < len(*a); i++ {
+		api := &(*a)[i]
+		api.DocumentRef = withDomain(domain, api.DocumentRef)
+	}
+
+	return a
+}
+func (a *Apis) WithService(service *Service) *Apis {
+	for i := 0; i < len(*a); i++ {
+		api := &(*a)[i]
+		api.Service = service
+	}
+
+	return a
 }
 
 type Header Parameters
@@ -273,7 +306,7 @@ func (q *Query) Add(parameters ...Parameter) {
 	*q = Query(p)
 }
 
-func (api *API) Example() (example Example, err error) {
+func (api *Api) Example() (example Example, err error) {
 
 	summary := api.Summary
 	if summary == "" {
@@ -573,10 +606,10 @@ type Service struct {
 	// 后置请求脚本
 	RequestPostScript Scripts `json:"requestPostScript"`
 	// json字符串
-	Variables Variables `json:"variables"`
-	Navigates Navigates `json:"navigates"`
-	Document  string    `json:"document"`
-	Apis      APIs      `json:"apis"`
+	Variables   Variables `json:"variables"`
+	Navigates   Navigates `json:"navigates"`
+	DocumentRef string    `json:"documentRef"`
+	Apis        Apis      `json:"apis"`
 }
 
 func (s *Service) AddServer(servers ...Server) {
@@ -618,6 +651,21 @@ func (s *Service) AddVariable(variables ...Variable) {
 	s.Variables = append(s.Variables, variables...)
 }
 
+func (s *Service) WithDocumentRefDomain(domain string) *Service {
+	s.DocumentRef = withDomain(domain, s.DocumentRef)
+	return s
+}
+
+func withDomain(domain string, path string) string {
+	if path == "" {
+		return path
+	}
+	if strings.HasPrefix(path, "http") {
+		return path
+	}
+	return fmt.Sprintf("%s%s", domain, path)
+
+}
 func (s *Service) AddNavigate(navigates ...Navigate) {
 	if s.Navigates == nil {
 		s.Navigates = make(Navigates, 0)
@@ -995,7 +1043,7 @@ type ApiJson2SchemaOut struct {
 	ResponseLineSchema string `json:"responseLineSchema"`
 }
 
-func ApiJson2Schema(api API) (out ApiJson2SchemaOut, err error) {
+func ApiJson2Schema(api Api) (out ApiJson2SchemaOut, err error) {
 	parameters := Parameters(api.RequestBody)
 	hp := Parameters(api.RequestHeader)
 	qp := Parameters(api.Query)

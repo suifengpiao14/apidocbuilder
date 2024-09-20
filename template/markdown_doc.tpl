@@ -2,11 +2,13 @@
 **简要描述:**
 > {{.Description}}
 
-**协议:**
-- 路径:{{.Path}}
-- 方法:{{.Method}}
+**服务文档**:{{if .Service }} {{.Service.DocumentRef}}{{end}}
 
-{{ if .Service.Servers -}}
+**协议:**
+- ***路径:*** {{.Path}}
+- ***方法:*** {{.Method}}
+
+{{ if .Service -}}
 
 **服务部署:**
 |名称|URL|IP|http代理|说明|
