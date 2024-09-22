@@ -12,7 +12,27 @@ import (
 
 func Fields2DocParams(fs ...*sqlbuilder.Field) (params Parameters) {
 	params = make(Parameters, 0)
+	fs2 := sqlbuilder.Fields{}
 	for _, f := range fs {
+		skipNull := false
+		switch f.Schema.Type {
+		case sqlbuilder.Schema_doc_Type_null, sqlbuilder.Schema_doc_Type_object, sqlbuilder.Schema_doc_Type_array:
+			docName := f.GetDocName()
+			objectChildrenPrefix := fmt.Sprintf("%s.", docName)
+			arrayChildrenPrefix := fmt.Sprintf("%s[]", docName)
+			for _, f1 := range fs {
+				if strings.HasPrefix(f1.GetDocName(), objectChildrenPrefix) || strings.HasPrefix(f1.GetDocName(), arrayChildrenPrefix) {
+					skipNull = true
+					break
+				}
+			}
+		}
+		if !skipNull {
+			fs2 = append(fs2, f)
+		}
+
+	}
+	for _, f := range fs2 {
 		dbSchema := f.Schema
 		if dbSchema == nil {
 			dbSchema = new(sqlbuilder.Schema)
@@ -48,7 +68,7 @@ func StructFieldCustom(val reflect.Value, structField reflect.StructField, fs sq
 		f.SetFieldName(funcs.ToLowerCamel(structField.Name)) //设置列名称
 	}
 	switch structField.Type.Kind() {
-	case reflect.Array, reflect.Slice, reflect.Struct:
+	case reflect.Array, reflect.Slice, reflect.Struct, reflect.Interface:
 		if !structField.Anonymous { // 嵌入结构体,文档名称不增加前缀
 			for i := 0; i < len(fs); i++ {
 				f := fs[i]

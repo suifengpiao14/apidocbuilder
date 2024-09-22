@@ -74,8 +74,8 @@ github.com/suifengpiao14/lineschemagogenerate v0.0.6 h1:GUSChldZ7MD9d2550PqbpDge
 github.com/suifengpiao14/lineschemagogenerate v0.0.6/go.mod h1:xfmS2we23OLZfzMmSBCOmjkbT+JKhNcaFuinRlWofaU=
 github.com/suifengpiao14/pathtransfer v0.0.14 h1:wmncEP35KoCCeo5TmTU8inunvb5c/7XGRW/NjFod71g=
 github.com/suifengpiao14/pathtransfer v0.0.14/go.mod h1:K3uRljPtZWqXYCR1C3JijxqxBFAPfq+BLaeSBRmPluc=
-github.com/suifengpiao14/sqlbuilder v0.1.5 h1:pTKImH4wpXc2MfkjCMCSk9bttTh9jL1rDu2pbV4OAwc=
-github.com/suifengpiao14/sqlbuilder v0.1.5/go.mod h1:CaSLaDqd8fJt3FF1k5BYuDKVRjI4qBdfgeeo0v80k7A=
+github.com/suifengpiao14/sqlbuilder v0.1.7 h1:v3xD7h/AwpdUSzWpjAnrEdO68w5YP19iMPHrlCYZY5U=
+github.com/suifengpiao14/sqlbuilder v0.1.7/go.mod h1:CaSLaDqd8fJt3FF1k5BYuDKVRjI4qBdfgeeo0v80k7A=
 github.com/tidwall/gjson v1.14.2/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/gjson v1.17.3 h1:bwWLZU7icoKRG+C+0PNwIKC6FCJO/Q3p2pZvuP0jN94=
 github.com/tidwall/gjson v1.17.3/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=

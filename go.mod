@@ -13,7 +13,7 @@ require (
 	github.com/suifengpiao14/lineschema v0.0.36
 	github.com/suifengpiao14/lineschemagogenerate v0.0.6
 	github.com/suifengpiao14/pathtransfer v0.0.14
-	github.com/suifengpiao14/sqlbuilder v0.1.5
+	github.com/suifengpiao14/sqlbuilder v0.1.7
 	github.com/tidwall/gjson v1.17.3
 	github.com/yuin/goldmark v1.7.4
 )
