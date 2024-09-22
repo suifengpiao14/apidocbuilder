@@ -45,9 +45,39 @@ type Api struct {
 	Query               Query      `json:"query"`
 	RequestBody         Parameters `json:"requestBody"`
 	ResponseBody        Parameters `json:"responseBody"`
-	Examples            []Example  `json:"examples"`
+	Examples            Examples   `json:"examples"`
 	Links               Links      `json:"links"`
 	DocumentRef         string     `json:"documentRef"`
+}
+
+// GetFirstExample 获取第一个example 模板中有使用
+func (api Api) GetFirstExample() (example *Example) {
+	if len(api.Examples) > 0 {
+		return api.Examples[0]
+	}
+	return &Example{}
+}
+
+func (api *Api) NewExample(request any, response any) (example *Example) {
+	if len(api.Examples) == 0 {
+		api.Examples = make(Examples, 0)
+
+	}
+	headers := make(map[string]string, 0)
+	if api.RequestContentType != "" {
+		headers["Content-Type"] = api.RequestContentType
+	}
+	example = &Example{
+		Method:      api.Method,
+		Title:       api.TitleOrDescription(),
+		Summary:     api.Summary,
+		URL:         api.Path,
+		Headers:     headers,
+		ContentType: api.RequestContentType,
+	}
+	example.SetRequestBody(request).SetResponseBody(response)
+	api.Examples = append(api.Examples, example)
+	return example
 }
 
 func (api *Api) SetContentTypeIfEmpty(requestContentType, responseContentType string) {
@@ -191,7 +221,7 @@ func (api *Api) Init() {
 		api.ResponseBody = Parameters{}
 	}
 	if api.Examples == nil {
-		api.Examples = make([]Example, 0)
+		api.Examples = make(Examples, 0)
 	}
 	if api.Name == "" { // 设置名称，确保名称一定存在
 		path := strings.ReplaceAll(strings.Trim(api.Path, "/"), "/", "_")
@@ -607,6 +637,8 @@ func (s *Scripts) Languages() (languages []string, err error) {
 	return languages, nil
 }
 
+type Examples []*Example
+
 type Example struct {
 	// 标签,mock数据时不同接口案例优先返回相同tag案例
 	Tag    string `json:"tag,omitempty"`
@@ -632,6 +664,34 @@ type Example struct {
 	TestScript string `json:"testScript,omitempty"`
 	// 请求体
 	Response string `json:"response,omitempty"`
+}
+
+func (example *Example) SetRequestBody(request any) *Example {
+	example.RequestBody = makeBody(request)
+	return example
+}
+
+func (example *Example) SetResponseBody(request any) *Example {
+	example.Response = makeBody(request)
+	return example
+}
+
+func makeBody(data any) (s string) {
+	switch v := data.(type) {
+	case string:
+		return v
+	case []byte:
+		return string(v)
+	default:
+		var out bytes.Buffer
+		enc := json.NewEncoder(&out)
+		enc.SetIndent("", "    ")
+		if err := enc.Encode(data); err != nil {
+			err = errors.WithMessagef(err, "makeBody: json.Marshal,data:%v", data)
+			panic(err)
+		}
+		return out.String()
+	}
 }
 
 type Parameter struct {

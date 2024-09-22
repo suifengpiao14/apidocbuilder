@@ -52,6 +52,12 @@
 |{{$param.Fullname}}|{{$param.Type}}|{{$param.Format}}|{{$param.Required}}|{{$param.AllowEmptyValue}}|{{$param.Title}}|{{$param.Description}}|{{$param.Default}}|{{$param.Example}}|
 {{end}}
 
+**请求案例**
+```json
+{{$example:=.GetFirstExample}}
+{{$example.RequestBody}}
+```
+
 {{- end}}
 
 ### 响应
@@ -77,6 +83,12 @@
 {{range $param:= .ResponseBody -}}
 |{{$param.Fullname}}|{{$param.Type}}|{{$param.Format}}|{{$param.Title}}|{{$param.Description}}|{{$param.Example}}|
 {{end}}
+
+**响应案例**
+```json
+{{$example:=.GetFirstExample}}
+{{$example.Response}}
+```
 
 {{- end}}
 
