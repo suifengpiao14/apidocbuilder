@@ -43,14 +43,22 @@ func Fields2DocParams(fs ...*sqlbuilder.Field) (params Parameters) {
 			enum = append(enum, cast.ToString(v.Key))
 			enumNames = append(enumNames, v.Title)
 		}
+		typ := dbSchema.Type.String()
+		if typ == "" {
+			typ = "string"
+		}
+		format := typ
+		if format == "string" {
+			format = ""
+		}
 
 		param := Parameter{
 			Fullname:        f.GetDocName(),
 			Required:        dbSchema.Required,
 			AllowEmptyValue: dbSchema.AllowEmpty(),
 			Title:           dbSchema.Title,
-			Type:            "string",
-			Format:          dbSchema.Type.String(),
+			Type:            "string", // 类型全部转为string
+			Format:          format,   //记录真正的类型
 			Default:         cast.ToString(dbSchema.Default),
 			Description:     dbSchema.Comment,
 			Enum:            strings.Join(enum, ", "),
