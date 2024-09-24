@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -671,13 +672,118 @@ func (example *Example) SetRequestBody(request any) *Example {
 	return example
 }
 
-func (example *Example) SetResponseBody(request any) *Example {
-	example.Response = makeBody(request)
+func (example *Example) SetResponseBody(response any) *Example {
+	example.Response = makeBody(response)
 	return example
 }
 
+func InitNilFields(input interface{}) {
+	var v reflect.Value
+	switch input := input.(type) {
+	case reflect.Value:
+		v = input
+	default:
+		v = reflect.Indirect(reflect.ValueOf(input))
+	}
+
+	// Handle input based on its kind: struct, pointer, slice, array, or interface
+	switch v.Kind() {
+	case reflect.Ptr:
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		sub := v.Elem()
+		InitNilFields(sub)
+		v.Set(sub) // InitNilFields填充值后再赋值
+	case reflect.Interface:
+		inter := v.Interface()
+		fmt.Println(inter)
+
+		if v.IsNil() {
+			return
+		}
+
+		sub := v.Elem()
+		if !sub.CanSet() {
+			sub = reflect.New(sub.Type()).Elem()
+
+		}
+		InitNilFields(sub)
+		subInter := sub.Interface()
+		fmt.Println(subInter)
+		v.Set(sub) // InitNilFields填充值后再赋值
+
+	case reflect.Struct:
+		// Handle struct types by initializing fields
+		initializeStruct(v)
+	case reflect.Slice, reflect.Array:
+		initializeSliceOrArray(v)
+	}
+}
+
+func initializeStruct(v reflect.Value) {
+	// Iterate over all fields of the struct
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldType := v.Type().Field(i)
+
+		// Initialize nil pointers, slices, and maps
+		switch field.Kind() {
+		case reflect.Ptr:
+			// Check if pointer is nil
+			if field.IsNil() {
+				// Create a new instance of the type the pointer points to
+				newValue := reflect.New(fieldType.Type.Elem())
+				field.Set(newValue)
+				InitNilFields(field)
+			}
+		case reflect.Map:
+			// Initialize map if nil
+			if field.IsNil() {
+				field.Set(reflect.MakeMap(fieldType.Type))
+			}
+		case reflect.Struct:
+			// Recursively initialize struct fields
+			InitNilFields(field.Addr())
+		case reflect.Interface:
+			if !field.IsNil() {
+				InitNilFields(field)
+			}
+		case reflect.Array, reflect.Slice:
+			initializeSliceOrArray(field)
+		}
+	}
+}
+func initializeSliceOrArray(v reflect.Value) {
+	// Ensure the slice or array is settable and handle initialization if it is nil
+	if v.Kind() == reflect.Slice && v.CanSet() && v.IsNil() {
+		v.Set(reflect.MakeSlice(v.Type(), 1, 1)) // Initialize with a single element slice
+	}
+
+	// Recursively initialize elements within the slice or array
+	for i := 0; i < v.Len(); i++ {
+		elem := v.Index(i)
+		if elem.Kind() == reflect.Ptr && elem.IsNil() {
+			elem.Set(reflect.New(elem.Type().Elem()))
+		}
+		if elem.CanAddr() {
+			InitNilFields(elem.Addr().Interface())
+		} else if elem.CanInterface() {
+			InitNilFields(elem.Interface())
+		}
+	}
+}
+
 func makeBody(data any) (s string) {
-	switch v := data.(type) {
+	//格式化data 对 data 内部的 any 地址 数组等结构进行初始化，确保能正确输出所有结构体结构数据
+	rt := reflect.TypeOf(data)
+	input := data
+	if rt.Kind() != reflect.Ptr {
+		input = &data
+	}
+	InitNilFields(input)
+
+	switch v := input.(type) {
 	case string:
 		return v
 	case []byte:
