@@ -107,8 +107,10 @@ func FieldStructToArray(stru any) sqlbuilder.Fields {
 	return sqlbuilder.FieldStructToArray(stru, StructFieldCustom, ArrayFieldCustom)
 }
 
-// Struct2DocName 结构体转文档参数名称，再通过名称 匹配fields 集合，即可生成文档参数
-func Struct2DocName(stru any, fs sqlbuilder.Fields) (fields sqlbuilder.Fields) {
+// Struct2Fields 结构体转文档参数名称，再通过名称 匹配fields 集合，即可生成文档参数
+func Struct2Fields(stru any, fs sqlbuilder.Fields) (fields sqlbuilder.Fields) { // todo 测试未通过，计划合并FieldStructToArray 实现 Struct2Fields
+	stru = getRefVariable(stru)
+	InitNilFields(stru) // 初始化所有字段
 	val := reflect.Indirect(reflect.ValueOf(stru))
 	names := struct2DocName(val)
 	fields = make(sqlbuilder.Fields, 0)

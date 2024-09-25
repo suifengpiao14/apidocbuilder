@@ -726,14 +726,20 @@ func initNilFields(v reflect.Value) {
 	}
 }
 
-func MakeBody(data any) (s string) {
-	//格式化data 对 data 内部的 any 地址 数组等结构进行初始化，确保能正确输出所有结构体结构数据
+// getRefVariable 获取指针类型数据
+func getRefVariable(data any) (ref any) {
 	rv := reflect.ValueOf(data)
 	if rv.Kind() != reflect.Ptr { // 非指针类型，转为指针类型
 		ref := reflect.New(rv.Type())
 		ref.Elem().Set(rv)
 		data = ref.Interface()
 	}
+	return data
+}
+
+func MakeBody(data any) (s string) {
+	//格式化data 对 data 内部的 any 地址 数组等结构进行初始化，确保能正确输出所有结构体结构数据
+	data = getRefVariable(data)
 	InitNilFields(data)
 	switch v := data.(type) {
 	case string:
