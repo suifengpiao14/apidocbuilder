@@ -668,12 +668,12 @@ type Example struct {
 }
 
 func (example *Example) SetRequestBody(request any) *Example {
-	example.RequestBody = makeBody(request)
+	example.RequestBody = MakeBody(request)
 	return example
 }
 
 func (example *Example) SetResponseBody(response any) *Example {
-	example.Response = makeBody(response)
+	example.Response = MakeBody(response)
 	return example
 }
 
@@ -726,8 +726,14 @@ func initNilFields(v reflect.Value) {
 	}
 }
 
-func makeBody(data any) (s string) {
+func MakeBody(data any) (s string) {
 	//格式化data 对 data 内部的 any 地址 数组等结构进行初始化，确保能正确输出所有结构体结构数据
+	rv := reflect.ValueOf(data)
+	if rv.Kind() != reflect.Ptr { // 非指针类型，转为指针类型
+		ref := reflect.New(rv.Type())
+		ref.Elem().Set(rv)
+		data = ref.Interface()
+	}
 	InitNilFields(data)
 	switch v := data.(type) {
 	case string:

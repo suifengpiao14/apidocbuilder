@@ -53,7 +53,7 @@ func TestInitNilFields(t *testing.T) {
 			Data:     ub.Items,
 		}
 
-		apidocbuilder.InitNilFields(&body)
+		apidocbuilder.InitNilFields(body)
 		b, _ := json.Marshal(body)
 		s := string(b)
 		fmt.Println(s)
@@ -66,6 +66,16 @@ func TestInitNilFields(t *testing.T) {
 		fmt.Println(s)
 	})
 
+}
+
+func TestMakeBody(t *testing.T) {
+	var ub userBody
+	body := MakeBodyStructItem{
+		UserBody: userBody{Name: "a"},
+		Data:     ub.Items,
+	}
+	s := apidocbuilder.MakeBody(body)
+	fmt.Println(s)
 }
 
 func TestInitNilFields2(m *testing.T) {
@@ -110,7 +120,7 @@ func (api Pagination) ApiDoc() apidocbuilder.Api {
 		RequestBody:  requestParams,
 		ResponseBody: responseFields,
 	}
-	apiDoc.NewExample(&api.Params, &out)
+	apiDoc.NewExample(api.Params, out)
 	return apiDoc
 }
 
