@@ -4,10 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 )
-
-var serviceMap sync.Map
 
 type Service struct {
 	Name string `json:"name"`
