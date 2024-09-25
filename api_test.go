@@ -18,16 +18,16 @@ type makeBodyStruct struct {
 	Map                map[string]int `json:"map"`
 }
 type MakeBodyStructItem struct {
-	//Name     string    `json:"name"`
-	//Title    string    `json:"title"`
-	//UserRef  *userBody `json:"userRef"`
-	//user     *userBody
-	//UserBody userBody `json:"user"`
-	Data any `json:"data"`
+	Name     string    `json:"name"`
+	Title    string    `json:"title"`
+	UserRef  *userBody `json:"userRef"`
+	user     *userBody
+	UserBody userBody `json:"user"`
+	Data     any      `json:"data"`
 }
 type userBody struct {
-	//Name  string `json:"name"`
-	//Age   int    `json:"age"`
+	Name  string `json:"name"`
+	Age   int    `json:"age"`
 	Items []Item
 }
 
@@ -49,8 +49,8 @@ func TestInitNilFields(t *testing.T) {
 		var ub userBody
 
 		body := MakeBodyStructItem{
-			//UserBody: userBody{Name: "a"},
-			Data: ub.Items,
+			UserBody: userBody{Name: "a"},
+			Data:     ub.Items,
 		}
 
 		apidocbuilder.InitNilFields(&body)
@@ -66,6 +66,16 @@ func TestInitNilFields(t *testing.T) {
 		fmt.Println(s)
 	})
 
+}
+
+func TestInitNilFields2(m *testing.T) {
+	var api = Pagination{}
+	out := ErrorOut{
+		Data: api.Out,
+	}
+	apidocbuilder.InitNilFields(&out)
+	b, _ := json.Marshal(&out)
+	fmt.Println(string(b))
 }
 
 func TestNewExample(t *testing.T) {
@@ -100,7 +110,7 @@ func (api Pagination) ApiDoc() apidocbuilder.Api {
 		RequestBody:  requestParams,
 		ResponseBody: responseFields,
 	}
-	apiDoc.NewExample(api.Params, out)
+	apiDoc.NewExample(&api.Params, &out)
 	return apiDoc
 }
 
