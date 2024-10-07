@@ -141,6 +141,9 @@ func nameFindFieldDefaultFn(name string, fs sqlbuilder.Fields) *sqlbuilder.Field
 	name = strings.Trim(name, "_")
 	camelName := funcs.ToLowerCamel(name)
 	for _, f := range fs {
+		if f == nil {
+			continue
+		}
 		if f.GetDocName() == camelName {
 			return f
 		}

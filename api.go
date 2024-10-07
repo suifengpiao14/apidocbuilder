@@ -738,6 +738,9 @@ func getRefVariable(data any) (ref any) {
 }
 
 func MakeBody(data any) (s string) {
+	if data == nil {
+		return ""
+	}
 	//格式化data 对 data 内部的 any 地址 数组等结构进行初始化，确保能正确输出所有结构体结构数据
 	data = getRefVariable(data)
 	InitNilFields(data)
