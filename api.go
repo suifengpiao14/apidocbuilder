@@ -761,6 +761,29 @@ func MakeBody(data any) (s string) {
 	}
 }
 
+type Format []string
+
+func (f *Format) Add(formats ...string) {
+	if *f == nil {
+		*f = make([]string, 0)
+	}
+	m := map[string]bool{}
+	for _, format := range *f {
+		m[format] = true
+	}
+	for _, format := range formats {
+		if _, ok := m[format]; !ok {
+			*f = append(*f, format)
+		}
+		m[format] = true
+	}
+
+}
+
+func (f *Format) String() (format string) {
+	return strings.Join(*f, ",")
+}
+
 type Parameter struct {
 	Title           string  `json:"title"` // 验证规则标识
 	Schema          *Schema // 全称
@@ -768,7 +791,7 @@ type Parameter struct {
 	Name            string  `json:"name,omitempty"`     // 参数类型(string-字符,int-整型,number-数字,array-数组,object-对象)
 	Type            string  `json:"type,omitempty"`     // 参数所在的位置(body-BODY,head-HEAD,path-PATH,query-QUERY,cookie-COOKIE)
 	Position        string  `json:"position,omitempty"`
-	Format          string  `json:"format,omitempty"` // 案例
+	Format          Format  `json:"format,omitempty"` // 案例
 	Example         string  `json:"example,omitempty"`
 	Default         string  `json:"default,omitempty"`                // 是否弃用(true-是,false-否)
 	Deprecated      string  `json:"deprecated,omitempty"`             // 是否必须(true-是,false-否)
@@ -815,7 +838,7 @@ func (p *Parameter) completeSchema() {
 	}
 	schema := p.Schema
 	//schema 部分值重新赋值
-	if p.Format != "" {
+	if len(p.Format) > 0 {
 		schema.Format = p.Format
 	}
 	schema.Type = p.Type
@@ -846,7 +869,80 @@ func (p *Parameter) completeSchema() {
 
 }
 
+func (p *Parameter) Complement(op Parameter) *Parameter {
+	op.Merge(*p)
+	*p = op
+	return p
+}
+
+func (p *Parameter) Merge(op Parameter) *Parameter {
+
+	if op.Title != "" {
+		p.Title = op.Title
+	}
+	if op.Schema != nil {
+		p.Schema.Merge(*op.Schema)
+	}
+	if op.Fullname != "" {
+		p.Fullname = op.Fullname
+	}
+	if op.Name != "" {
+		p.Name = op.Name
+	}
+	if op.Type != "" {
+		p.Type = op.Type
+	}
+	if op.Position != "" {
+		p.Position = op.Position
+	}
+	if len(op.Format) > 0 {
+		p.Format.Add(op.Format...)
+	}
+	if op.Example != "" {
+		p.Example = op.Example
+	}
+	if op.Default != "" {
+		p.Default = op.Default
+	}
+	if op.Deprecated != "" {
+		p.Deprecated = op.Deprecated
+	}
+	if op.Required {
+		p.Required = op.Required
+	}
+	if op.Serialize != "" {
+		p.Serialize = op.Serialize
+	}
+	if op.Explode != "" {
+		p.Explode = op.Explode
+	}
+	if op.AllowEmptyValue {
+		p.AllowEmptyValue = op.AllowEmptyValue
+	}
+	if op.AllowReserved != "" {
+		p.AllowReserved = op.AllowReserved
+	}
+	if op.Description != "" {
+		p.Description = op.Description
+	}
+	if len(op.Enum) > 0 {
+		p.Enum = op.Enum
+	}
+	if len(op.EnumNames) > 0 {
+		p.EnumNames = op.EnumNames
+	}
+	if op.RegExp != "" {
+		p.RegExp = op.RegExp
+	}
+	if op.Vocabulary != "" {
+		p.Vocabulary = op.Vocabulary
+	}
+
+	return p
+}
+
 func (p *Parameter) FormatField() {
+	p.Fullname = strings.ReplaceAll(p.Fullname, ".[]", "[]")
 	if p.Name == "" { // 格式化名称
 		name := p.Fullname
 		lastDotIndex := strings.LastIndex(name, ".")
@@ -855,7 +951,72 @@ func (p *Parameter) FormatField() {
 		}
 		(*p).Name = name
 	}
+	if p.Type == "interface" {
+		p.Type = "any"
+	}
 
+}
+
+type parameterMatch struct {
+	Score     int
+	Parameter Parameter
+}
+
+type parameterMatchs []parameterMatch
+
+func (a parameterMatchs) Len() int           { return len(a) }
+func (a parameterMatchs) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a parameterMatchs) Less(i, j int) bool { return a[i].Score < a[j].Score }
+
+func (p Parameter) matchScore(op Parameter) (score int) {
+	pFullname := p.Fullname
+	if pFullname == "" {
+		pFullname = p.Name
+	}
+	opFullname := op.Fullname
+	if opFullname == "" {
+		opFullname = op.Name
+	}
+	pFullname = strings.ReplaceAll(pFullname, "[]", "[]")
+	opFullname = strings.ReplaceAll(opFullname, "[]", "[]")
+	pFullname = strings.ToLower(pFullname)
+	opFullname = strings.ToLower(opFullname)
+
+	score = fullnameMatchScore(pFullname, opFullname)
+	return score
+}
+
+func fullnameMatchScore(pFullname, opFullname string) int {
+	if pFullname == opFullname {
+		return len(opFullname)
+	}
+	if strings.HasSuffix(pFullname, opFullname) {
+		return len(opFullname)
+	}
+	if strings.HasPrefix(pFullname, opFullname) {
+		return len(opFullname)
+	}
+
+	if strings.Contains(pFullname, opFullname) {
+		return len(opFullname)
+	}
+	return 0
+}
+
+func (p *Parameter) MatchBetter(ps Parameters) (*Parameter, bool) {
+	pms := make(parameterMatchs, 0)
+	for _, op := range ps {
+		pms = append(pms, parameterMatch{
+			Score:     p.matchScore(op),
+			Parameter: op,
+		})
+	}
+	sort.Sort(sort.Reverse(pms))
+	first := pms[0]
+	if first.Score > 0 {
+		return &first.Parameter, true
+	}
+	return nil, false
 }
 
 type Parameters []Parameter
@@ -868,6 +1029,29 @@ func (p *Parameters) Add(parameters ...Parameter) {
 	tmp := Parameters(parameters)
 	tmp.FormatField()
 	*p = append(*p, parameters...)
+}
+
+func (ps Parameters) ConvertType2String() Parameters {
+	for i := range ps {
+		p := (ps)[i]
+		format := p.Type
+		if format == "string" {
+			format = ""
+		}
+		(ps)[i].Type = "string"    // 类型全部改成string
+		(ps)[i].Format.Add(format) //记录真实类型
+	}
+	return ps
+}
+
+func (ps Parameters) Complement(ops Parameters) Parameters {
+	for i := range ps {
+		p := (ps)[i]
+		if op, ok := p.MatchBetter(ops); ok {
+			(ps)[i].Complement(*op)
+		}
+	}
+	return ps
 }
 
 // Transfers 收集跟随参数的词汇
@@ -894,7 +1078,7 @@ const (
 	PARAMETER_ATTR_POSITION_ENUM_HEADER = "header"
 )
 
-func (p *Parameters) Lineschema(id string, withHeader bool) (lineSchema lineschema.Lineschema) {
+func (ps Parameters) Lineschema(id string, withHeader bool) (lineSchema lineschema.Lineschema) {
 
 	lineSchema = lineschema.Lineschema{
 		Meta: &lineschema.Meta{
@@ -903,7 +1087,7 @@ func (p *Parameters) Lineschema(id string, withHeader bool) (lineSchema linesche
 		},
 		Items: make(lineschema.LineschemaItems, 0),
 	}
-	for _, parameter := range *p {
+	for _, parameter := range ps {
 		if !withHeader && parameter.Position == PARAMETER_ATTR_POSITION_ENUM_HEADER {
 			continue
 		}
@@ -957,7 +1141,7 @@ type Schema struct {
 	// 枚举名称
 	EnumNames string `json:"enumNames,omitempty"`
 	// 格式
-	Format string `json:"format,omitempty"`
+	Format Format `json:"format,omitempty"`
 	// 默认值
 	Default string `json:"default,omitempty"`
 	// 是否可以为空(true-是,false-否)
@@ -1051,7 +1235,7 @@ func (s *Schema) ToLineSchemaItem(fullname string) (lineschemaItem lineschema.Li
 		MaxProperties:    s.MaxProperties,
 		MinProperties:    s.MinProperties,
 		Required:         s.Required,
-		Format:           s.Format,
+		Format:           s.Format.String(),
 		Description:      s.Description,
 		Default:          s.Default,
 		Deprecated:       s.Deprecated,
@@ -1111,4 +1295,154 @@ func makeTitle(description string) (title string) {
 	reg := regexp.MustCompile("[\u4e00-\u9fa5\\w]+")
 	title = reg.FindString(description)
 	return title
+}
+
+func (s *Schema) Merge(os Schema) *Schema {
+
+	if os.Title != "" {
+		s.Title = os.Title
+	}
+
+	if os.Description != "" {
+		s.Description = os.Description
+	}
+	if os.Comments != "" {
+		s.Comments = os.Comments
+	}
+	if os.Remark != "" {
+		s.Remark = os.Remark
+	}
+	if os.Type != "" {
+		s.Type = os.Type
+	}
+	if os.Example != "" {
+		s.Example = os.Example
+	}
+	if os.Examples != "" {
+		s.Examples = os.Examples
+	}
+	if os.Deprecated {
+		s.Deprecated = os.Deprecated
+	}
+	if os.Required {
+		s.Required = os.Required
+	}
+	if os.Enum != "" {
+		s.Enum = os.Enum
+	}
+	if os.EnumNames != "" {
+		s.EnumNames = os.EnumNames
+	}
+	if len(os.Format) > 0 {
+		s.Format = os.Format
+	}
+	if os.Default != "" {
+		s.Default = os.Default
+	}
+	if os.Nullable != "" {
+		s.Nullable = os.Nullable
+	}
+	if os.MultipleOf > 0 {
+		s.MultipleOf = os.MultipleOf
+	}
+	if os.Maximum > 0 {
+		s.Maximum = os.Maximum
+	}
+	if os.ExclusiveMaximum {
+		s.ExclusiveMaximum = os.ExclusiveMaximum
+	}
+	if os.Minimum > 0 {
+		s.Minimum = os.Minimum
+	}
+	if os.ExclusiveMinimum {
+		s.ExclusiveMinimum = os.ExclusiveMinimum
+	}
+	if os.MaxLength > 0 {
+		s.MaxLength = os.MaxLength
+	}
+	if os.MinLength > 0 {
+		s.MinLength = os.MinLength
+	}
+	if os.Pattern != "" {
+		s.Pattern = os.Pattern
+	}
+	if os.MaxItems > 0 {
+		s.MaxItems = os.MaxItems
+	}
+	if os.MinItems > 0 {
+		s.MinItems = os.MinItems
+	}
+	if os.UniqueItems {
+		s.UniqueItems = os.UniqueItems
+	}
+	if os.MaxProperties > 0 {
+		s.MaxProperties = os.MaxProperties
+	}
+	if os.MinProperties > 0 {
+		s.MinProperties = os.MinProperties
+	}
+	if len(os.AllOf) > 0 {
+		s.AllOf = os.AllOf
+	}
+	if len(os.OneOf) > 0 {
+		s.OneOf = os.OneOf
+	}
+	if len(os.AnyOf) > 0 {
+		s.AnyOf = os.AnyOf
+	}
+
+	if os.AllowEmptyValue {
+		s.AllowEmptyValue = os.AllowEmptyValue
+	}
+	if os.AllowReserved != "" {
+		s.AllowReserved = os.AllowReserved
+	}
+	if os.Not != "" {
+		s.Not = os.Not
+	}
+	if os.AdditionalProperties != "" {
+		s.AdditionalProperties = os.AdditionalProperties
+	}
+	if os.Discriminator != "" {
+		s.Discriminator = os.Discriminator
+	}
+
+	if os.ReadOnly {
+		s.ReadOnly = os.ReadOnly
+	}
+	if os.WriteOnly {
+		s.WriteOnly = os.WriteOnly
+	}
+
+	if os.XML != "" {
+		s.XML = os.XML
+	}
+	if os.ExternalDocs != "" {
+		s.ExternalDocs = os.ExternalDocs
+	}
+	if os.ExternalPros != "" {
+		s.ExternalPros = os.ExternalPros
+	}
+	if os.Extensions != "" {
+		s.Extensions = os.Extensions
+	}
+	if os.Summary != "" {
+		s.Summary = os.Summary
+	}
+	if os.SchemaRef != "" {
+		s.SchemaRef = os.SchemaRef
+	}
+	if os.Items != nil {
+		s.Items = os.Items
+	}
+	if len(os.Properties) > 0 {
+		s.Properties = os.Properties
+	}
+	return s
+}
+
+func (s *Schema) Complement(os Schema) *Schema {
+	os.Merge(*s)
+	*s = os
+	return s
 }

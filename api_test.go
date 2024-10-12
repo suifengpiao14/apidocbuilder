@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/suifengpiao14/apidocbuilder"
+	"github.com/suifengpiao14/sqlbuilder"
 )
 
 type makeBodyStruct struct {
@@ -105,13 +106,41 @@ type ErrorOut struct {
 	Data    any    `json:"data"`
 }
 
+func (e ErrorOut) Fields() sqlbuilder.Fields {
+	return sqlbuilder.Fields{
+		NewCode(e.Code),
+		NewMessage(e.Message),
+		NewData(e.Data),
+	}
+}
+func NewCode(code string) *sqlbuilder.Field {
+	return sqlbuilder.NewStringField(code, "code", "错误编码", 20).SetDescription("0-正常,其它-异常")
+}
+func NewMessage(message string) *sqlbuilder.Field {
+	return sqlbuilder.NewStringField(message, "message", "错误信息", 1024)
+}
+func NewData(data any) *sqlbuilder.Field {
+	return sqlbuilder.NewField(func(_ any) (any, error) {
+		if data == nil {
+			return nil, nil
+		}
+		b, err := json.Marshal(data)
+		if err != nil {
+			return nil, err
+		}
+
+		inputValue := string(b)
+		return inputValue, nil
+	}).SetName("data").SetTitle("返回数据").SetType(sqlbuilder.Schema_doc_Type_null)
+}
+
 func (api Pagination) ApiDoc() apidocbuilder.Api {
-	reqFields := apidocbuilder.FieldStructToArray(api.Params)
+	reqFields := apidocbuilder.StructToFields(api.Params)
 	requestParams := apidocbuilder.Fields2DocParams(reqFields...)
 	out := ErrorOut{
 		Data: api.Out,
 	}
-	respFields := apidocbuilder.FieldStructToArray(out)
+	respFields := apidocbuilder.StructToFields(out)
 	responseFields := apidocbuilder.Fields2DocParams(respFields...)
 	apiDoc := apidocbuilder.Api{
 		Group:        "matecriteria",
@@ -182,4 +211,14 @@ type MateCriteria struct {
 
 	CreatedAt string `gorm:"column:Fcreated_at" json:"createdAt"`
 	UpdateAt  string `gorm:"column:Fupdated_at" json:"updatedAt"`
+}
+
+func TestOutputArr(t *testing.T) {
+	var stringArr []string
+	out := ErrorOut{
+		Data: stringArr,
+	}
+	respFields := apidocbuilder.StructToFields(out)
+	responseFields := apidocbuilder.Fields2DocParams(respFields...)
+	fmt.Println(responseFields)
 }
