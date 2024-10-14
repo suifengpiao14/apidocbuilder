@@ -6,6 +6,9 @@
 - ***路径:*** {{.Path}}
 - ***方法:*** {{.Method}}
 
+
+[在线调试]({{.GetFormPathWithQuery}})
+
 {{ if .Service -}}
 
 **服务部署:**

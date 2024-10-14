@@ -33,7 +33,6 @@ type Service struct {
 	Apis                Apis      `json:"apis"`
 	requestContentType  string    // 批量给apis 设置
 	responseContentType string    // 批量给apis 设置
-
 }
 
 func (s *Service) RegisterContentType(requestContentType, responseContentType string) {
@@ -121,6 +120,14 @@ func withDomain(domain string, path string) string {
 	return fmt.Sprintf("%s%s", domain, path)
 
 }
+func (s *Service) GetFormPath() (formUrl string) {
+	return getFormPath(s.DocumentRef)
+}
+
+func getFormPath(documentRef string) (formUrl string) {
+	return fmt.Sprintf("%s/form", documentRef)
+}
+
 func (s *Service) AddNavigate(navigates ...Navigate) {
 	if s.Navigates == nil {
 		s.Navigates = make(Navigates, 0)

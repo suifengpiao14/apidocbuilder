@@ -102,6 +102,10 @@ func (api *Api) IsSameName(name string) (yes bool) {
 	return yes
 }
 
+func (api Api) GetFormPathWithQuery() string {
+	return fmt.Sprintf("%s?name=%s", getFormPath(api.DocumentRef), api.Name)
+}
+
 // IsRequestContentTypeJson 判断请求是否为json请求格式
 func (api Api) IsRequestContentTypeJson() (yes bool) {
 	return api.isJson("request")
@@ -822,6 +826,13 @@ func (p *Parameter) Copy() (copy Parameter) {
 		copy.Schema = &schema
 	}
 	return copy
+}
+
+func (p Parameter) TitleOrDescription() string {
+	if p.Title != "" {
+		return p.Title
+	}
+	return p.Description
 }
 
 func (p *Parameter) SetSchema(schemaJson string) {

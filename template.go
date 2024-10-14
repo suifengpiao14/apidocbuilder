@@ -34,7 +34,11 @@ func ExecTpl(tplName string, data any) (content []byte, err error) {
 //go:embed  render
 var HtmlTemplateFS embed.FS
 
-func RenderHtml(filename string, data any) (content []byte, err error) {
+func newTplInstance() *template.Template {
+	return template.New("").Funcs(sprig.FuncMap())
+}
+
+func RenderHtml(tplInstance *template.Template, filename string, data any) (content []byte, err error) {
 	fullname := fmt.Sprintf("render/%s", filename)
 	fs, err := HtmlTemplateFS.Open(fullname)
 	if err != nil {
@@ -45,7 +49,7 @@ func RenderHtml(filename string, data any) (content []byte, err error) {
 		return nil, err
 	}
 
-	tpl, err := template.New("").Funcs(sprig.FuncMap()).Parse(string(tplContent))
+	tpl, err := tplInstance.Parse(string(tplContent))
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +65,7 @@ func RenderHtml(filename string, data any) (content []byte, err error) {
 const (
 	TPL_NAME_MARKDOWN_DOC     = "markdownDoc"
 	TPL_NAME_MARKDOWN_SERVICE = "markdownService"
-	TPL_NAME_HTML_DOC         = "htmlDoc"
+	TPL_NAME_HTML_DEBUGGING   = "debugging"
 )
 
 func Api2Markdown(api Api) (out []byte, err error) {
@@ -95,7 +99,7 @@ func Markdown2HTML(markdownContent []byte) (out []byte, err error) {
 		return nil, err
 	}
 	filename := "html_doc.html"
-	out, err = RenderHtml(filename, buf.String())
+	out, err = RenderHtml(newTplInstance(), filename, buf.String())
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +113,8 @@ type ServiceRender struct {
 }
 
 func (s *ServiceRender) SetActiveApi(api Api) { // 渲染html时使用
+	api.DocumentRef = s.DocumentRef
+	api.Service = &s.Service
 	s.activeApi = &api
 }
 func (s ServiceRender) GetActiveApi() *Api { // 渲染html时使用
@@ -154,7 +160,25 @@ func RenderService(serviceRender ServiceRender, currentApiName string) (out []by
 	}
 
 	filename := "html_service.html"
-	out, err = RenderHtml(filename, serviceRender)
+	out, err = RenderHtml(newTplInstance(), filename, serviceRender)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+func RenderForm(serviceRender ServiceRender, currentApiName string) (out []byte, err error) {
+	if currentApiName != "" {
+		api, err := serviceRender.GetApiByName(currentApiName)
+		if err != nil {
+			return nil, err
+		}
+		serviceRender.SetActiveApi(*api)
+	}
+
+	filename := "html_form.html"
+	apiForm := NewApiForm(*serviceRender.activeApi)
+	out, err = RenderHtml(newTplInstance().Delims("[[", "]]"), filename, apiForm)
 	if err != nil {
 		return nil, err
 	}

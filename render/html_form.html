@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线调试</title>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <!-- 引入 React 和 ReactDOM 的 CDN -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+
+    <!-- 引入 Babel 来支持 JSX 语法 -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style type="text/css">
+        .container {
+            display: flex;
+            background-color: #f4f4f4;
+            height: 100%;
+            /* 可根据需要设置高度 */
+        }
+
+        /* 左侧请求表单 */
+        .request-form {
+            width: 50%;
+            box-sizing: border-box;
+            border-right: 1px solid #ddd;
+            margin-right: -1px;
+            float: left;
+            overflow: auto;
+        }
+
+        /* 右侧响应内容 */
+        .response-data {
+            flex: 1;
+            /* 右侧栏自适应剩余空间 */
+            box-sizing: border-box;
+            border: none;
+            overflow: auto;
+            padding-left: 10px;
+        }
+    </style>
+    <!-- 编写 React 代码 -->
+    <script type="text/babel">
+        // 定义一个简单的表单组件
+        class MyForm extends React.Component {
+            constructor(props) {
+                super(props);
+                // 表单的初始状态
+                this.state = [[.State]];
+            }
+
+            // 处理输入变化
+            handleChange = (event) => {
+                const { name, value } = event.target;
+                this.setState({ [name]: value });
+            }
+
+            // 处理表单提交
+            handleSubmit = (event) => {
+                event.preventDefault(); // 防止表单的默认提交行为
+                // 构建请求体数据
+                const formData = this.state;
+
+                // 通过 AJAX 提交数据（使用 fetch）
+                fetch('[[.Action]]', {
+                    method: '[[.Method]]',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const prettyData = JSON.stringify(data, null, 2);
+                        this.setState({ response: prettyData });
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                        this.setState({ response: 'Form submission failed!' });
+                    });
+            }
+
+            render() {
+                return (
+                    <div>
+                        <h1>[[.Title]]</h1>
+                        <div className={"container"}>
+                            <div className={"request-form"}>
+                                <h2>请求数据：</h2>
+                                <form onSubmit={this.handleSubmit}>
+                                    [[ range $item:= .Items -]]
+                                    <div>
+                                        <label>[[ $item.Label ]]: </label>
+                                        <[[$item.FormItem]]
+                                        type="[[ $item.InputType ]]"
+                                        name="[[ $item.Name ]]"
+                                        value={this.state.[[$item.Name]]}
+                                        onChange={this.handleChange}
+                                        required={[[$item.Required]]}
+                                        />
+
+                                    </div>
+                                    [[ end ]]
+                                    <button type="submit">请求</button>
+                                </form>
+
+                            </div>
+
+                            <div className={"response-data"}>
+                                <h2>响应数据：</h2>
+                                <pre>{this.state.response}</pre>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+        }
+
+        // 渲染表单到页面
+        ReactDOM.render(<MyForm />, document.getElementById('root'));
+    </script>
+</body>
+
+</html>
