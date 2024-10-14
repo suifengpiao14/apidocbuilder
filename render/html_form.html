@@ -101,9 +101,14 @@
                                         name="[[ $item.Name ]]"
                                         value={this.state.[[$item.Name]]}
                                         onChange={this.handleChange}
-                                        required={[[$item.Required]]}
+                                        {[[$item.Required]] ? "required" : ""}
+                                        {[[$item.SelectMultiple]] ? "multiple" : ""}
                                         />
+                                        [[ range $option:= $item.SelectOptions -]]
+                                        <option value="[[$option.Value]]">[[$option.Label]]</option>
+                                        [[end]]
 
+                                        </[[$item.FormItem]]>
                                     </div>
                                     [[ end ]]
                                     <button type="submit">请求</button>
@@ -115,8 +120,8 @@
                                 <h2>响应数据：</h2>
                                 <pre>{this.state.response}</pre>
                             </div>
-                        </div>
-                    </div>
+                        </div >
+                    </div >
                 );
             }
         }

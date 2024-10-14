@@ -69,6 +69,7 @@ func Fields2DocParams(fs ...*sqlbuilder.Field) (params Parameters) {
 		}
 		params = append(params, param)
 	}
+	params.FormatField()
 	return params
 
 }
