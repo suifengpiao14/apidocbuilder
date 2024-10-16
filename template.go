@@ -167,6 +167,13 @@ func RenderService(serviceRender ServiceRender, currentApiName string) (out []by
 
 	return out, nil
 }
+
+// FormView 直接定义模板中需要的数据，将所有逻辑留在go代码中(方便调试)，减少模板复杂度(方便维护)
+type FormView struct {
+	Title string
+	Form  string
+}
+
 func RenderForm(serviceRender ServiceRender, currentApiName string) (out []byte, err error) {
 	if currentApiName != "" {
 		api, err := serviceRender.GetApiByName(currentApiName)
@@ -177,8 +184,12 @@ func RenderForm(serviceRender ServiceRender, currentApiName string) (out []byte,
 	}
 
 	filename := "html_form.html"
-	apiForm := NewApiForm(*serviceRender.activeApi)
-	out, err = RenderHtml(newTplInstance().Delims("[[", "]]"), filename, apiForm)
+	htmxForm := NewHtmxForm(*serviceRender.activeApi)
+	formView := FormView{
+		Title: htmxForm.Title,
+		Form:  htmxForm.String(),
+	}
+	out, err = RenderHtml(newTplInstance(), filename, formView)
 	if err != nil {
 		return nil, err
 	}

@@ -4,18 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>在线调试</title>
-</head>
+    <title>HTMX + Alpine.js Form</title>
+    <script src="https://unpkg.com/htmx.org"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+    <!-- Prism.js 样式 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-json.min.js"></script>
 
-<body>
-    <div id="root"></div>
 
-    <!-- 引入 React 和 ReactDOM 的 CDN -->
-    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
 
-    <!-- 引入 Babel 来支持 JSX 语法 -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style type="text/css">
         .container {
             display: flex;
@@ -25,7 +24,7 @@
         }
 
         /* 左侧请求表单 */
-        .request-form {
+        .request-container {
             width: 50%;
             box-sizing: border-box;
             border-right: 1px solid #ddd;
@@ -35,7 +34,7 @@
         }
 
         /* 右侧响应内容 */
-        .response-data {
+        .response-container {
             flex: 1;
             /* 右侧栏自适应剩余空间 */
             box-sizing: border-box;
@@ -44,91 +43,70 @@
             padding-left: 10px;
         }
     </style>
-    <!-- 编写 React 代码 -->
-    <script type="text/babel">
-        // 定义一个简单的表单组件
-        class MyForm extends React.Component {
-            constructor(props) {
-                super(props);
-                // 表单的初始状态
-                this.state = [[.State]];
-            }
+</head>
 
-            // 处理输入变化
-            handleChange = (event) => {
-                const { name, value } = event.target;
-                this.setState({ [name]: value });
-            }
+<body>
+    <h1>{{.Title}}</h1>
+    <div class="container">
+        <!-- 表单提交时局部刷新，并用服务器返回的数据更新表单外部的 div -->
+        <div class="request-container">
+            <h2>请求数据：</h2>
+            {{.Form}}
+        </div>
+        <div className="response-container">
+            <h2>响应数据：</h2>
+            <!-- 这里用于接收 HTMX 的响应 -->
+            <div id="response-data"></div>
+        </div>
 
-            // 处理表单提交
-            handleSubmit = (event) => {
-                event.preventDefault(); // 防止表单的默认提交行为
-                // 构建请求体数据
-                const formData = this.state;
 
-                // 通过 AJAX 提交数据（使用 fetch）
-                fetch('[[.Action]]', {
-                    method: '[[.Method]]',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData),
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        const prettyData = JSON.stringify(data, null, 2);
-                        this.setState({ response: prettyData });
-                    })
-                    .catch((error) => {
-                        console.error('Error:', error);
-                        this.setState({ response: 'Form submission failed!' });
-                    });
-            }
 
-            render() {
-                return (
-                    <div>
-                        <h1>[[.Title]]</h1>
-                        <div className={"container"}>
-                            <div className={"request-form"}>
-                                <h2>请求数据：</h2>
-                                <form onSubmit={this.handleSubmit}>
-                                    [[ range $item:= .Items -]]
-                                    <div>
-                                        <label>[[ $item.Label ]]: </label>
-                                        <[[$item.FormItem]]
-                                        type="[[ $item.InputType ]]"
-                                        name="[[ $item.Name ]]"
-                                        value={this.state.[[$item.Name]]}
-                                        onChange={this.handleChange}
-                                        {[[$item.Required]] ? "required" : ""}
-                                        {[[$item.SelectMultiple]] ? "multiple" : ""}
-                                        />
-                                        [[ range $option:= $item.SelectOptions -]]
-                                        <option value="[[$option.Value]]">[[$option.Label]]</option>
-                                        [[end]]
+    </div>
 
-                                        </[[$item.FormItem]]>
-                                    </div>
-                                    [[ end ]]
-                                    <button type="submit">请求</button>
-                                </form>
-
-                            </div>
-
-                            <div className={"response-data"}>
-                                <h2>响应数据：</h2>
-                                <pre>{this.state.response}</pre>
-                            </div>
-                        </div >
-                    </div >
-                );
-            }
-        }
-
-        // 渲染表单到页面
-        ReactDOM.render(<MyForm />, document.getElementById('root'));
-    </script>
 </body>
+<script>
+    htmx.defineExtension('jsonpretty', {
+        onEvent: function (name, evt) {
+            if (name === "htmx:configRequest") {
+                evt.detail.headers['Content-Type'] = "application/json";
+            }
+        },
+
+        encodeParameters: function (xhr, parameters, elt) {
+            xhr.overrideMimeType('text/json');
+            return (JSON.stringify(parameters));
+        }
+    });
+</script>
+
+<script>
+    document.addEventListener("htmx:afterOnLoad", function (evt) {
+        // 假设响应包含服务器返回的纯 JSON 数据
+        const jsonResponse = evt.detail.xhr.response;
+
+        // 将 JSON 数据解析成对象
+        const jsonData = JSON.parse(jsonResponse);
+
+        // 格式化 JSON 对象为字符串
+        const jsonString = JSON.stringify(jsonData, null, 2);
+
+        // 构建 <pre><code> 结构
+        const codeContainer = document.createElement('pre');
+        const codeElement = document.createElement('code');
+        codeElement.className = 'language-json';
+        codeElement.textContent = jsonString;
+
+        // 将 <code> 元素加入到 <pre> 中
+        codeContainer.appendChild(codeElement);
+
+        // 插入到页面的容器中
+        const jsonContainer = document.getElementById('response-data');
+        jsonContainer.innerHTML = ''; // 清空之前的内容
+        jsonContainer.appendChild(codeContainer);
+
+        // 调用 Prism.js 进行高亮
+        Prism.highlightElement(codeElement);
+    });
+</script>
 
 </html>
