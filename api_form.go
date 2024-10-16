@@ -98,6 +98,7 @@ type TagTextArea struct {
 }
 
 func (tag TagTextArea) Html() (html htmlgo.HTML) {
+	tag.Label.Required = tag.Required
 	inputAttrs := htmlgo.Attr(
 		attributes.Name(tag.Name),
 		attributes.Value(tag.Value),
@@ -125,14 +126,30 @@ type TagInput struct {
 
 type TagLabel struct {
 	Label string `json:"label"`
+	TagRequired
+}
+
+type TagRequired struct {
+	Required bool `json:"required"`
+}
+
+func (t TagRequired) Html() (html htmlgo.HTML) {
+	if t.Required {
+		attrs := htmlgo.Attr(
+			attributes.Class("required"),
+		)
+		html = htmlgo.Span(attrs, htmlgo.Text("*"))
+	}
+	return html
 }
 
 func (t TagLabel) Html() (html htmlgo.HTML) {
-	html = htmlgo.Label_(htmlgo.Text(t.Label))
+	html = htmlgo.Label_(htmlgo.Text(t.Label), t.TagRequired.Html())
 	return html
 }
 
 func (tag TagInput) Html() (html htmlgo.HTML) {
+	tag.Label.Required = tag.Required
 	inputAttrs := make([]attributes.Attribute, 0)
 	inputAttrs = append(inputAttrs, attributes.Type_(tag.Type))
 	inputAttrs = append(inputAttrs, attributes.Name(tag.Name))
@@ -154,6 +171,7 @@ type TagSelect struct {
 }
 
 func (tag TagSelect) Html() (html htmlgo.HTML) {
+	tag.Label.Required = tag.Required
 	selectAttrs := make([]attributes.Attribute, 0)
 	selectAttrs = append(selectAttrs, attributes.Name(tag.Name))
 	tagSelect := htmlgo.Select(selectAttrs, tag.Options.Html()...)
@@ -316,6 +334,7 @@ type TagRadios struct {
 }
 
 func (tag TagRadios) Html() (html htmlgo.HTML) {
+	tag.Label.Required = tag.Required
 	children := make([]htmlgo.HTML, 0)
 	children = append(children, tag.Label.Html())
 	for i, v := range tag.Radios {
