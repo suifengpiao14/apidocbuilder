@@ -87,6 +87,33 @@ func Attr(name string, data interface{}, templs ...string) attributes.Attribute 
 	return attr
 }
 
+type TagTextArea struct {
+	Label       TagLabel
+	Name        string `json:"name"`
+	Value       string `json:"value"`
+	Required    bool   `json:"required"`
+	Placeholder string `json:"placeholder"`
+	Cols        int    `json:"column"`
+	Rows        int    `json:"rows"`
+}
+
+func (tag TagTextArea) Html() (html htmlgo.HTML) {
+	inputAttrs := htmlgo.Attr(
+		attributes.Name(tag.Name),
+		attributes.Value(tag.Value),
+		attributes.Placeholder_(tag.Placeholder),
+		attributes.Rows(tag.Rows),
+		attributes.Cols(tag.Cols),
+	)
+
+	if tag.Required {
+		inputAttrs = append(inputAttrs, attributes.Required_())
+	}
+	tagInput := htmlgo.Textarea(inputAttrs)
+	div := htmlgo.Div_(tag.Label.Html(), tagInput)
+	return div
+}
+
 type TagInput struct {
 	Label       TagLabel
 	Name        string `json:"name"`
@@ -112,7 +139,7 @@ func (tag TagInput) Html() (html htmlgo.HTML) {
 	inputAttrs = append(inputAttrs, attributes.Value(tag.Value))
 	inputAttrs = append(inputAttrs, attributes.Placeholder_(tag.Placeholder))
 	if tag.Required {
-		inputAttrs = append(inputAttrs, attributes.Required(true))
+		inputAttrs = append(inputAttrs, attributes.Required_())
 	}
 	tagInput := htmlgo.Input(inputAttrs)
 	div := htmlgo.Div_(tag.Label.Html(), tagInput)
@@ -154,7 +181,7 @@ func (o SelectOption) Html() (html htmlgo.HTML) {
 	attrs := make([]attributes.Attribute, 0)
 	attrs = append(attrs, attributes.Value(o.Value))
 	if o.Checked {
-		attrs = append(attrs, attributes.Checked(true))
+		attrs = append(attrs, attributes.Checked_())
 
 	}
 	option := htmlgo.Option(attrs, htmlgo.Text(o.Label))
@@ -182,9 +209,25 @@ func Parameter2FormChidren(p Parameter) (html htmlgo.HTML) {
 	if p.Name == "" {
 		return
 	}
+
 	if p.Enum != "" {
+		if strings.Count(p.Enum, ",") < 3 { // 3个枚举值以内，使用单选框
+			return Parameter2Radios(p).Html()
+		}
 		return Parameter2TagSelect(p).Html()
 	}
+	schema := p.Schema
+	if schema == nil {
+		schema = &Schema{}
+	}
+	if p.Format.Has("number", "int", "integer", "float") { // 数字类型直接用input[type=number]
+		return Parameter2TagInput(p).Html()
+	}
+
+	if p.Type == "string" && (schema.MaxLength == 0 || schema.MaxLength >= Schema_MaxLength_textArea) { // 长度不限制，或者过长，使用textarea
+		return Parameter2TextArea(p).Html()
+	}
+
 	html = Parameter2TagInput(p).Html()
 	return html
 }
@@ -207,11 +250,124 @@ func Parameter2TagInput(p Parameter) (tag TagInput) {
 		Placeholder: p.TitleOrDescription(),
 	}
 	switch schema.Type {
-	case "number", "integer", "int":
+	case "number", "integer", "int", "float":
 		tagInput.Type = "number"
 	}
 
 	return tagInput
+}
+
+const (
+	Schema_textArea_cols = 50 // 50个字符一行
+)
+
+func Parameter2TextArea(p Parameter) (tag TagTextArea) {
+	if p.Name == "" {
+		return
+	}
+	realName, _ := isArrayName(p.Name)
+	schema := p.Schema
+	if schema == nil {
+		schema = &Schema{}
+	}
+	rows := schema.MaxLength / Schema_textArea_cols
+	tagInput := TagTextArea{
+		Label:       TagLabel{Label: p.TitleOrDescription()},
+		Name:        realName,
+		Value:       p.Default,
+		Required:    p.Required,
+		Placeholder: p.TitleOrDescription(),
+		Cols:        Schema_textArea_cols,
+		Rows:        rows,
+	}
+	return tagInput
+}
+
+type TagRadio struct {
+	Label    TagLabel
+	Name     string `json:"name"`
+	Value    any    `json:"value"`
+	Required bool   `json:"required"`
+	Checked  bool   `json:"checked"`
+}
+
+func (tag TagRadio) Html() (html htmlgo.HTML) {
+	//type="radio" name="gender" value="male" checked
+	attrs := htmlgo.Attr(
+		attributes.Type_("radio"),
+		attributes.Name(tag.Name),
+		attributes.Value(tag.Value),
+	)
+	if tag.Required {
+		attrs = append(attrs, attributes.Required_())
+	}
+	if tag.Checked {
+		attrs = append(attrs, attributes.Checked_())
+	}
+	input := htmlgo.Input(attrs)
+	label := htmlgo.Label_(input)
+	return label
+}
+
+type TagRadios struct {
+	Label    TagLabel
+	Required bool `json:"required"`
+	Radios   []TagRadio
+}
+
+func (tag TagRadios) Html() (html htmlgo.HTML) {
+	children := make([]htmlgo.HTML, 0)
+	children = append(children, tag.Label.Html())
+	for i, v := range tag.Radios {
+		if tag.Required && i == 0 { // 给第一个标记改组必填
+			v.Required = tag.Required
+		}
+		children = append(children, v.Html())
+	}
+	html = htmlgo.Div_(children...)
+	return html
+}
+
+func Parameter2Radios(p Parameter) (tag TagRadios) {
+	if p.Name == "" {
+		return
+	}
+	realName, _ := isArrayName(p.Name)
+	schema := p.Schema
+	if schema == nil {
+		schema = &Schema{}
+	}
+	tag = TagRadios{
+		Label:    TagLabel{Label: p.TitleOrDescription()},
+		Required: p.Required,
+		Radios:   make([]TagRadio, 0),
+	}
+	if p.Enum != "" {
+		enums := strings.Split(p.Enum, ",")
+		enumsName := strings.Split(p.EnumNames, ",")
+		nameLen := len(enumsName)
+		for i, v := range enums {
+			label := v
+			if i < nameLen {
+				label = enumsName[i]
+			}
+			checked := false
+			if v == p.Default {
+				checked = true
+			}
+
+			radio := TagRadio{
+				Label:    TagLabel{Label: label},
+				Name:     realName,
+				Value:    v,
+				Required: p.Required,
+				Checked:  checked,
+			}
+			tag.Radios = append(tag.Radios, radio)
+		}
+
+	}
+	return tag
 }
 
 func Parameter2TagSelect(p Parameter) (tag TagSelect) {

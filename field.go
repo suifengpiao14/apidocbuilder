@@ -41,37 +41,63 @@ func Fields2DocParams(fs ...*sqlbuilder.Field) (params Parameters) {
 
 	}
 	for _, f := range fs2 {
-		dbSchema := f.Schema
-		if dbSchema == nil {
-			dbSchema = new(sqlbuilder.Schema)
+		if param, ok := Field2DocParam(f); ok {
+			params = append(params, *param)
 		}
-		enum := make([]string, 0)
-		enumNames := make([]string, 0)
-		for _, v := range dbSchema.Enums {
-			enum = append(enum, cast.ToString(v.Key))
-			enumNames = append(enumNames, v.Title)
-		}
-		typ := dbSchema.Type.String()
-		if typ == "" {
-			typ = "string"
-		}
-		param := Parameter{
-			Fullname:        f.GetDocName(),
-			Required:        dbSchema.Required,
-			AllowEmptyValue: dbSchema.AllowEmpty(),
-			Title:           dbSchema.Title,
-			Type:            typ,
-			Default:         cast.ToString(dbSchema.Default),
-			Description:     dbSchema.Comment,
-			Enum:            strings.Join(enum, ", "),
-			EnumNames:       strings.Join(enumNames, ", "),
-			RegExp:          dbSchema.RegExp,
-		}
-		params = append(params, param)
+
 	}
-	params.FormatField()
 	return params
 
+}
+
+func Field2DocParam(f *sqlbuilder.Field) (param *Parameter, ok bool) {
+	if f == nil {
+		return
+	}
+	dbSchema := f.Schema
+	if dbSchema == nil {
+		dbSchema = new(sqlbuilder.Schema)
+	}
+	enum := make([]string, 0)
+	enumNames := make([]string, 0)
+	for _, v := range dbSchema.Enums {
+		enum = append(enum, cast.ToString(v.Key))
+		enumNames = append(enumNames, v.Title)
+	}
+	typ := dbSchema.Type.String()
+	if typ == "" {
+		typ = "string"
+	}
+	enumStr := strings.Join(enum, ", ")
+	EnumNamesStr := strings.Join(enumNames, ", ")
+	param = &Parameter{
+		Fullname:        f.GetDocName(),
+		Required:        dbSchema.Required,
+		AllowEmptyValue: dbSchema.AllowEmpty(),
+		Title:           dbSchema.Title,
+		Type:            typ,
+		Default:         cast.ToString(dbSchema.Default),
+		Description:     dbSchema.Comment,
+		Enum:            enumStr,
+		EnumNames:       EnumNamesStr,
+		RegExp:          dbSchema.RegExp,
+		Schema: &Schema{
+			Title:           dbSchema.Title,
+			Description:     dbSchema.Comment,
+			Type:            typ,
+			Required:        dbSchema.Required,
+			Enum:            enumStr,
+			EnumNames:       EnumNamesStr,
+			Default:         cast.ToString(dbSchema.Default),
+			Maximum:         cast.ToInt(dbSchema.Maximum),
+			Minimum:         dbSchema.Minimum,
+			MaxLength:       dbSchema.MaxLength,
+			MinLength:       dbSchema.MinLength,
+			AllowEmptyValue: dbSchema.AllowEmpty(),
+		},
+	}
+	param.FormatField()
+	return param, true
 }
 
 func StructFieldCustom(val reflect.Value, structField reflect.StructField, fs sqlbuilder.Fields) sqlbuilder.Fields {

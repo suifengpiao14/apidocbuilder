@@ -784,6 +784,17 @@ func (f *Format) Add(formats ...string) {
 
 }
 
+func (f Format) Has(formats ...string) bool {
+	for _, format := range formats {
+		for _, exists := range f {
+			if strings.EqualFold(exists, format) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (f *Format) String() (format string) {
 	return strings.Join(*f, ",")
 }
@@ -901,6 +912,9 @@ func (p *Parameter) Merge(op Parameter) *Parameter {
 		p.Name = op.Name
 	}
 	if op.Type != "" {
+		if op.Type != p.Type { //新类型和旧类型不一致时，将旧类型添加到格式中(如接口参数声明为string，但是程序内部(db)为int格式)
+			p.Format.Add(p.Type)
+		}
 		p.Type = op.Type
 	}
 	if op.Position != "" {
@@ -1218,6 +1232,10 @@ type Schema struct {
 	Items      *Schema            `json:"items,omitempty"`
 	Properties map[string]*Schema `json:"properties,omitempty"`
 }
+
+const (
+	Schema_MaxLength_textArea = 128 // 文本域 长度大于该值，表单使用textarea元素
+)
 
 func (s *Schema) Copy() (copy Schema) {
 	copy = *s
