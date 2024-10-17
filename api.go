@@ -863,7 +863,7 @@ func (p *Parameter) SetSchema(schemaJson string) {
 }
 
 func (p *Parameter) completeSchema() {
-	schema := p.Schema
+	schema := &p.Schema
 	//schema 部分值重新赋值
 	if len(p.GetFormat()) > 0 {
 		schema.Format = p.GetFormat()
