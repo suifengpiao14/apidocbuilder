@@ -784,6 +784,10 @@ func (f *Format) Add(formats ...string) {
 
 }
 
+func (f Format) IsNil() bool {
+	return len(f) == 0
+}
+
 func (f Format) Has(formats ...string) bool {
 	for _, format := range formats {
 		for _, exists := range f {
@@ -800,26 +804,33 @@ func (f *Format) String() (format string) {
 }
 
 type Parameter struct {
-	Title           string  `json:"title"` // 验证规则标识
-	Schema          *Schema // 全称
-	Fullname        string  `json:"fullname,omitempty"` // 名称(冗余local.en)
-	Name            string  `json:"name,omitempty"`     // 参数类型(string-字符,int-整型,number-数字,array-数组,object-对象)
-	Type            string  `json:"type,omitempty"`     // 参数所在的位置(body-BODY,head-HEAD,path-PATH,query-QUERY,cookie-COOKIE)
-	Position        string  `json:"position,omitempty"`
-	Format          Format  `json:"format,omitempty"` // 案例
-	Example         string  `json:"example,omitempty"`
-	Default         string  `json:"default,omitempty"`                // 是否弃用(true-是,false-否)
-	Deprecated      string  `json:"deprecated,omitempty"`             // 是否必须(true-是,false-否)
-	Required        bool    `json:"required,omitempty,string"`        // 对数组、对象序列化方法,参照openapi parameters.style
-	Serialize       string  `json:"serialize,omitempty"`              // 对象的key,是否单独成参数方式,参照openapi parameters.explode(true-是,false-否)
-	Explode         string  `json:"explode,omitempty"`                // 是否容许空值(true-是,false-否)
-	AllowEmptyValue bool    `json:"allowEmptyValue,omitempty,string"` // 特殊字符是否容许出现在uri参数中(true-是,false-否)
-	AllowReserved   string  `json:"allowReserved,omitempty"`          // 简介
-	Description     string  `json:"description,omitempty"`
-	Enum            string  `json:"enum,omitempty"`
-	EnumNames       string  `json:"enumNames,omitempty"`
-	RegExp          string  `json:"regExp"`         // 验证规则
-	Vocabulary      string  `json:"vocabularyDict"` // 词汇
+	Title           string `json:"title"` // 验证规则标识
+	Schema          Schema // 后续Param 更多参数移到schema中，所以此处不能用地址(初始化不方便)
+	Fullname        string `json:"fullname,omitempty"` // 名称(冗余local.en)
+	Name            string `json:"name,omitempty"`     // 参数类型(string-字符,int-整型,number-数字,array-数组,object-对象)
+	Type            string `json:"type,omitempty"`     // 参数所在的位置(body-BODY,head-HEAD,path-PATH,query-QUERY,cookie-COOKIE)
+	Position        string `json:"position,omitempty"`
+	Example         string `json:"example,omitempty"`
+	Default         string `json:"default,omitempty"`                // 是否弃用(true-是,false-否)
+	Deprecated      string `json:"deprecated,omitempty"`             // 是否必须(true-是,false-否)
+	Required        bool   `json:"required,omitempty,string"`        // 对数组、对象序列化方法,参照openapi parameters.style
+	Serialize       string `json:"serialize,omitempty"`              // 对象的key,是否单独成参数方式,参照openapi parameters.explode(true-是,false-否)
+	Explode         string `json:"explode,omitempty"`                // 是否容许空值(true-是,false-否)
+	AllowEmptyValue bool   `json:"allowEmptyValue,omitempty,string"` // 特殊字符是否容许出现在uri参数中(true-是,false-否)
+	AllowReserved   string `json:"allowReserved,omitempty"`          // 简介
+	Description     string `json:"description,omitempty"`
+	Enum            string `json:"enum,omitempty"`
+	EnumNames       string `json:"enumNames,omitempty"`
+	RegExp          string `json:"regExp"`         // 验证规则
+	Vocabulary      string `json:"vocabularyDict"` // 词汇
+}
+
+func (p Parameter) GetFormat() (format Format) {
+	return p.Schema.Format
+}
+
+func (p *Parameter) SetFormat(format ...string) {
+	p.Schema.Format.Add(format...)
 }
 
 func (p *Parameter) Value() (value string) {
@@ -832,10 +843,7 @@ func (p *Parameter) Value() (value string) {
 
 func (p *Parameter) Copy() (copy Parameter) {
 	copy = *p
-	if p.Schema != nil {
-		schema := p.Schema.Copy()
-		copy.Schema = &schema
-	}
+	copy.Schema = p.Schema.Copy()
 	return copy
 }
 
@@ -849,19 +857,16 @@ func (p Parameter) TitleOrDescription() string {
 func (p *Parameter) SetSchema(schemaJson string) {
 	schema := &Schema{}
 	json.Unmarshal([]byte(schemaJson), schema) // ignore error
-	p.Schema = schema
+	p.Schema = *schema
 	//schema 部分值重新赋值
 	p.completeSchema()
 }
 
 func (p *Parameter) completeSchema() {
-	if p.Schema == nil {
-		p.Schema = &Schema{}
-	}
 	schema := p.Schema
 	//schema 部分值重新赋值
-	if len(p.Format) > 0 {
-		schema.Format = p.Format
+	if len(p.GetFormat()) > 0 {
+		schema.Format = p.GetFormat()
 	}
 	schema.Type = p.Type
 	schema.Required = p.Required
@@ -902,9 +907,7 @@ func (p *Parameter) Merge(op Parameter) *Parameter {
 	if op.Title != "" {
 		p.Title = op.Title
 	}
-	if op.Schema != nil {
-		p.Schema.Merge(*op.Schema)
-	}
+	p.Schema.Merge(op.Schema)
 	if op.Fullname != "" {
 		p.Fullname = op.Fullname
 	}
@@ -913,15 +916,15 @@ func (p *Parameter) Merge(op Parameter) *Parameter {
 	}
 	if op.Type != "" {
 		if op.Type != p.Type { //新类型和旧类型不一致时，将旧类型添加到格式中(如接口参数声明为string，但是程序内部(db)为int格式)
-			p.Format.Add(p.Type)
+			p.SetFormat(p.Type)
 		}
 		p.Type = op.Type
 	}
 	if op.Position != "" {
 		p.Position = op.Position
 	}
-	if len(op.Format) > 0 {
-		p.Format.Add(op.Format...)
+	if len(op.GetFormat()) > 0 {
+		p.SetFormat(op.GetFormat()...)
 	}
 	if op.Example != "" {
 		p.Example = op.Example
@@ -1036,6 +1039,9 @@ func (p *Parameter) MatchBetter(ps Parameters) (*Parameter, bool) {
 			Parameter: op,
 		})
 	}
+	if len(pms) == 0 {
+		return nil, false
+	}
 	sort.Sort(sort.Reverse(pms))
 	first := pms[0]
 	if first.Score > 0 {
@@ -1063,13 +1069,13 @@ func (ps Parameters) ConvertType2String() Parameters {
 		if format == "string" {
 			format = ""
 		}
-		(ps)[i].Type = "string"    // 类型全部改成string
-		(ps)[i].Format.Add(format) //记录真实类型
+		(ps)[i].Type = "string"   // 类型全部改成string
+		(ps)[i].SetFormat(format) //记录真实类型
 	}
 	return ps
 }
 
-func (ps Parameters) Complement(ops Parameters) Parameters {
+func (ps Parameters) Complement(ops ...Parameter) Parameters {
 	for i := range ps {
 		p := (ps)[i]
 		if op, ok := p.MatchBetter(ops); ok {
@@ -1117,10 +1123,8 @@ func (ps Parameters) Lineschema(id string, withHeader bool) (lineSchema linesche
 			continue
 		}
 		parameter.completeSchema() //完善schema
-		if parameter.Schema != nil {
-			item := parameter.Schema.ToLineSchemaItem(parameter.Fullname)
-			lineSchema.Items.Add(&item)
-		}
+		item := parameter.Schema.ToLineSchemaItem(parameter.Fullname)
+		lineSchema.Items.Add(&item)
 	}
 	return lineSchema
 }

@@ -70,6 +70,8 @@ func Field2DocParam(f *sqlbuilder.Field) (param *Parameter, ok bool) {
 	}
 	enumStr := strings.Join(enum, ", ")
 	EnumNamesStr := strings.Join(enumNames, ", ")
+	format := Format{}
+	format.Add(dbSchema.Format)
 	param = &Parameter{
 		Fullname:        f.GetDocName(),
 		Required:        dbSchema.Required,
@@ -81,10 +83,11 @@ func Field2DocParam(f *sqlbuilder.Field) (param *Parameter, ok bool) {
 		Enum:            enumStr,
 		EnumNames:       EnumNamesStr,
 		RegExp:          dbSchema.RegExp,
-		Schema: &Schema{
+		Schema: Schema{
 			Title:           dbSchema.Title,
 			Description:     dbSchema.Comment,
 			Type:            typ,
+			Format:          format,
 			Required:        dbSchema.Required,
 			Enum:            enumStr,
 			EnumNames:       EnumNamesStr,
@@ -151,9 +154,12 @@ func getJsonTag(val reflect.StructField) (jsonTag string) {
 	return tag
 }
 
-// Struct2ParametersWithCompletment 根据结构体生成参数，并补全文档信息
-func Struct2ParametersWithCompletment(stru any) (parameters Parameters) {
-	return Struct2Parameters(stru).Complement(Fields2DocParams(StructToFields(stru)...))
+// Struct2ParametersWithFields 根据结构体生成参数，并补全文档信息
+func Struct2ParametersWithFields(stru any, fs ...*sqlbuilder.Field) (parameters Parameters) {
+	allFields := StructToFields(stru)
+	allFields = append(allFields, fs...)
+	allParams := Fields2DocParams(allFields...)
+	return Struct2Parameters(stru).Complement(allParams...)
 }
 
 func Struct2Parameters(stru any) (parameters Parameters) {

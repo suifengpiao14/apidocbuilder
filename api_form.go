@@ -2,6 +2,7 @@ package apidocbuilder
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/julvo/htmlgo"
@@ -56,12 +57,9 @@ func (htmxForm HtmxForm) Html() (html htmlgo.HTML) {
 		div := htmlgo.Div_(htmlgo.Text("无需入参数"))
 		htmls = append(htmls, div)
 	}
-	submit := TagButton{
-		Type:    "submit",
-		Text:    "请求",
-		WrapDiv: true,
-	}
-	htmls = append(htmls, submit.Html())
+
+	submitInput := TagInput{Type: "submit", Value: "请求"}
+	htmls = append(htmls, submitInput.Html())
 	form := htmlgo.Form(attrs, htmls...)
 	return form
 }
@@ -115,6 +113,40 @@ func (tag TagTextArea) Html() (html htmlgo.HTML) {
 	return div
 }
 
+type InputTypeRef struct {
+	Type     string `json:"type"`
+	Format   Format `json:"format"`
+	SortDesc int    `json:"sortDesc"`
+}
+
+type InputTypeRefs []InputTypeRef
+
+func (a InputTypeRefs) Len() int           { return len(a) }
+func (a InputTypeRefs) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a InputTypeRefs) Less(i, j int) bool { return a[i].SortDesc > a[j].SortDesc }
+
+var (
+	// 确保遍历顺序
+	InputTypeRefDefault = InputTypeRefs{
+		{Type: "checkbox", Format: Format{"checkbox"}, SortDesc: 99},
+		{Type: "color", Format: Format{"color"}, SortDesc: 98},
+		{Type: "date", Format: Format{"date"}, SortDesc: 97},
+		{Type: "datetime-local", Format: Format{"datetime"}, SortDesc: 96},
+		{Type: "time", Format: Format{"time"}, SortDesc: 95},
+		{Type: "week", Format: Format{"week"}, SortDesc: 94},
+		{Type: "month", Format: Format{"month"}, SortDesc: 93},
+		{Type: "email", Format: Format{"email"}, SortDesc: 92},
+		{Type: "file", Format: Format{"file"}, SortDesc: 91},
+		{Type: "number", Format: Format{"int", "integer", "float", "range"}, SortDesc: 90},
+		{Type: "password", Format: Format{"password"}, SortDesc: 89},
+		{Type: "range", Format: Format{"range"}, SortDesc: 88},
+		{Type: "search", Format: Format{"search"}, SortDesc: 87},
+		{Type: "tel", Format: Format{"tel", "phone"}, SortDesc: 86},
+		{Type: "url", Format: Format{"url"}, SortDesc: 85},
+		{Type: "text", Format: Format{"string"}, SortDesc: 0},
+	}
+)
+
 type TagInput struct {
 	Label       TagLabel
 	Name        string `json:"name"`
@@ -122,11 +154,70 @@ type TagInput struct {
 	Value       string `json:"value"`
 	Required    bool   `json:"required"`
 	Placeholder string `json:"placeholder"`
+	Min         int    `json:"min"`
+	Max         int    `json:"max"`
+}
+
+func (tag TagInput) Format2Type(formats ...string) string {
+	sort.Sort(InputTypeRefDefault)
+	for _, v := range InputTypeRefDefault {
+		if v.Format.Has(formats...) {
+			return v.Type
+		}
+	}
+	return "text"
+}
+
+type Class []string
+
+func (c *Class) Add(class string) {
+	if *c == nil {
+		*c = make([]string, 0)
+	}
+	*c = append(*c, class)
+}
+
+func (c *Class) Remove(classes ...string) {
+	m := make(map[string]bool)
+	for _, v := range classes {
+		m[v] = true
+	}
+
+	tmpCls := make([]string, 0)
+	for _, v := range *c {
+		if !m[v] {
+			tmpCls = append(tmpCls, v)
+		}
+	}
+	*c = tmpCls
+}
+
+func (c *Class) Clearn() {
+	*c = make(Class, 0)
+}
+
+func (c Class) Attr() attributes.Attribute {
+	return attributes.Class_(c...)
 }
 
 type TagLabel struct {
 	Label string `json:"label"`
 	TagRequired
+	Class       Class `json:"class"`
+	RemoveClass Class `json:"removeClass"`
+}
+
+const (
+	class_label = "label"
+)
+
+func (t TagLabel) Html() (html htmlgo.HTML) {
+	t.Class.Add(class_label)
+	t.Class.Remove(t.RemoveClass...)
+	attrs := make([]attributes.Attribute, 0)
+	attrs = append(attrs, t.Class.Attr())
+	html = htmlgo.Label(attrs, htmlgo.Text(t.Label), t.TagRequired.Html())
+	return html
 }
 
 type TagRequired struct {
@@ -136,15 +227,10 @@ type TagRequired struct {
 func (t TagRequired) Html() (html htmlgo.HTML) {
 	if t.Required {
 		attrs := htmlgo.Attr(
-			attributes.Class("required"),
+			attributes.Class_("required"),
 		)
 		html = htmlgo.Span(attrs, htmlgo.Text("*"))
 	}
-	return html
-}
-
-func (t TagLabel) Html() (html htmlgo.HTML) {
-	html = htmlgo.Label_(htmlgo.Text(t.Label), t.TagRequired.Html())
 	return html
 }
 
@@ -155,6 +241,13 @@ func (tag TagInput) Html() (html htmlgo.HTML) {
 	inputAttrs = append(inputAttrs, attributes.Name(tag.Name))
 	inputAttrs = append(inputAttrs, attributes.Value(tag.Value))
 	inputAttrs = append(inputAttrs, attributes.Placeholder_(tag.Placeholder))
+	if tag.Min > 0 {
+		inputAttrs = append(inputAttrs, attributes.Min(tag.Min))
+	}
+	if tag.Max > 0 {
+		inputAttrs = append(inputAttrs, attributes.Max(tag.Max))
+	}
+
 	if tag.Required {
 		inputAttrs = append(inputAttrs, attributes.Required_())
 	}
@@ -235,14 +328,8 @@ func Parameter2FormChidren(p Parameter) (html htmlgo.HTML) {
 		return Parameter2TagSelect(p).Html()
 	}
 	schema := p.Schema
-	if schema == nil {
-		schema = &Schema{}
-	}
-	if p.Format.Has("number", "int", "integer", "float") { // 数字类型直接用input[type=number]
-		return Parameter2TagInput(p).Html()
-	}
-
-	if p.Type == "string" && (schema.MaxLength == 0 || schema.MaxLength >= Schema_MaxLength_textArea) { // 长度不限制，或者过长，使用textarea
+	format := p.GetFormat()
+	if p.Type == "string" && (format.IsNil() || format.Has("string")) && (schema.MaxLength == 0 || schema.MaxLength >= Schema_MaxLength_textArea) { // 长度不限制，或者过长，使用textarea
 		return Parameter2TextArea(p).Html()
 	}
 
@@ -256,21 +343,19 @@ func Parameter2TagInput(p Parameter) (tag TagInput) {
 	}
 	realName, _ := isArrayName(p.Name)
 	schema := p.Schema
-	if schema == nil {
-		schema = &Schema{}
-	}
+
 	tagInput := TagInput{
 		Label:       TagLabel{Label: p.TitleOrDescription()},
-		Type:        "text",
 		Name:        realName,
 		Value:       p.Default,
 		Required:    p.Required,
 		Placeholder: p.TitleOrDescription(),
+		Min:         schema.Minimum,
+		Max:         schema.Maximum,
 	}
-	switch schema.Type {
-	case "number", "integer", "int", "float":
-		tagInput.Type = "number"
-	}
+	format := p.GetFormat()
+	format.Add(tag.Type)
+	tagInput.Type = tagInput.Format2Type(format...)
 
 	return tagInput
 }
@@ -285,9 +370,6 @@ func Parameter2TextArea(p Parameter) (tag TagTextArea) {
 	}
 	realName, _ := isArrayName(p.Name)
 	schema := p.Schema
-	if schema == nil {
-		schema = &Schema{}
-	}
 	rows := schema.MaxLength / Schema_textArea_cols
 	tagInput := TagTextArea{
 		Label:       TagLabel{Label: p.TitleOrDescription()},
@@ -352,10 +434,7 @@ func Parameter2Radios(p Parameter) (tag TagRadios) {
 		return
 	}
 	realName, _ := isArrayName(p.Name)
-	schema := p.Schema
-	if schema == nil {
-		schema = &Schema{}
-	}
+
 	tag = TagRadios{
 		Label:    TagLabel{Label: p.TitleOrDescription()},
 		Required: p.Required,
@@ -394,10 +473,6 @@ func Parameter2TagSelect(p Parameter) (tag TagSelect) {
 		return
 	}
 	realName, _ := isArrayName(p.Name)
-	schema := p.Schema
-	if schema == nil {
-		schema = &Schema{}
-	}
 	tag = TagSelect{Name: realName}
 	if p.Enum != "" {
 		selectOptions := make([]SelectOption, 0)
