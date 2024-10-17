@@ -776,6 +776,9 @@ func (f *Format) Add(formats ...string) {
 		m[format] = true
 	}
 	for _, format := range formats {
+		if format == "" { //跳过空值
+			continue
+		}
 		if _, ok := m[format]; !ok {
 			*f = append(*f, format)
 		}
@@ -799,8 +802,8 @@ func (f Format) Has(formats ...string) bool {
 	return false
 }
 
-func (f *Format) String() (format string) {
-	return strings.Join(*f, ",")
+func (f Format) String() (format string) {
+	return strings.Join(f, ",")
 }
 
 type Parameter struct {

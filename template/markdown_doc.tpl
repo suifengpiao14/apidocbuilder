@@ -30,7 +30,8 @@
 |参数名|类型|格式|必选|可空|标题|说明|默认值|示例|
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|
 {{range $param:= .RequestHeader -}}
-|{{$param.Fullname}}|{{$param.Type}}|{{$param.GetFormat}}|{{$param.Required}}|{{$param.AllowEmptyValue}}|{{$param.Title}}|{{$param.Description}}|{{$param.Default}}|{{$param.Example}}|
+{{- $format:=$param.GetFormat -}}
+|{{$param.Fullname}}|{{$param.Type}}|{{$format.String}}|{{$param.Required}}|{{$param.AllowEmptyValue}}|{{$param.Title}}|{{$param.Description}}|{{$param.Default}}|{{$param.Example}}|
 {{end}}
 
 {{- end}}
@@ -41,7 +42,8 @@
 |参数名|类型|格式|必选|可空|标题|说明|默认值|示例|
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|
 {{range $param:= .Query -}}
-|{{$param.Fullname}}|{{$param.Type}}|{{$param.GetFormat}}|{{$param.Required}}|{{$param.AllowEmptyValue}}|{{$param.Title}}|{{$param.Description}}|{{$param.Default}}|{{$param.Example}}|
+{{- $format:=$param.GetFormat -}}
+|{{$param.Fullname}}|{{$param.Type}}|{{$format.String}}|{{$param.Required}}|{{$param.AllowEmptyValue}}|{{$param.Title}}|{{$param.Description}}|{{$param.Default}}|{{$param.Example}}|
 {{end}}
 
 {{- end}}
@@ -52,7 +54,8 @@
 |参数名|类型|格式|必选|可空|标题|说明|默认值|示例|
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|
 {{range $param:= .RequestBody -}}
-|{{$param.Fullname}}|{{$param.Type}}|{{$param.GetFormat}}|{{$param.Required}}|{{$param.AllowEmptyValue}}|{{$param.Title}}|{{$param.Description}}|{{$param.Default}}|{{$param.Example}}|
+{{- $format:=$param.GetFormat -}}
+|{{$param.Fullname}}|{{$param.Type}}|{{$format.String}}|{{$param.Required}}|{{$param.AllowEmptyValue}}|{{$param.Title}}|{{$param.Description}}|{{$param.Default}}|{{$param.Example}}|
 {{end}}
 
 **请求案例**
@@ -73,7 +76,8 @@
 |参数名|类型|格式|必选|可空|标题|说明|默认值|示例|
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|
 {{range $param:= .ResponseHeader -}}
-|{{$param.Fullname}}|{{$param.Type}}|{{$param.GetFormat}}|{{$param.Required}}|{{$param.AllowEmptyValue}}|{{$param.Title}}|{{$param.Description}}|{{$param.Default}}|{{$param.Example}}|
+{{- $format:=$param.GetFormat -}}
+|{{$param.Fullname}}|{{$param.Type}}|{{$format.String}}|{{$param.Required}}|{{$param.AllowEmptyValue}}|{{$param.Title}}|{{$param.Description}}|{{$param.Default}}|{{$param.Example}}|
 {{end}}
 
 {{- end}}
@@ -84,7 +88,8 @@
 |参数名|类型|格式|标题|说明|示例|
 |:---|:---|:---|:---|:---|:---|
 {{range $param:= .ResponseBody -}}
-|{{$param.Fullname}}|{{$param.Type}}|{{$param.GetFormat}}|{{$param.Title}}|{{$param.Description}}|{{$param.Example}}|
+{{- $format:=$param.GetFormat -}}
+|{{$param.Fullname}}|{{$param.Type}}|{{$format.String}}|{{$param.Title}}|{{$param.Description}}|{{$param.Example}}|
 {{end}}
 
 **响应案例**
