@@ -722,7 +722,8 @@ func initNilFields(v reflect.Value) {
 		}
 	case reflect.Slice, reflect.Array:
 		if v.Kind() == reflect.Slice && v.CanSet() && v.IsNil() {
-			v.Set(reflect.MakeSlice(v.Type(), 1, 1)) // Initialize with a single element slice
+			v.Set(reflect.MakeSlice(v.Type(), 0, 1)) // 初始化为空值 不然 []byte类型  json.RawMessage 类型字段 decode 失败,测试不影响正常数组初始化
+
 		}
 		for i := 0; i < v.Len(); i++ {
 			initNilFields(v.Index(i))

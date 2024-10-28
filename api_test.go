@@ -36,6 +36,10 @@ type Item struct {
 	Name string `json:"name"`
 }
 
+type DataJson struct {
+	Data json.RawMessage `json:"data"`
+}
+
 func TestInitNilFields(t *testing.T) {
 	t.Run("simple struct", func(t *testing.T) {
 		body := userBody{
@@ -54,7 +58,7 @@ func TestInitNilFields(t *testing.T) {
 			Data:     ub.Items,
 		}
 
-		apidocbuilder.InitNilFields(body)
+		apidocbuilder.InitNilFields(&body)
 		b, _ := json.Marshal(body)
 		s := string(b)
 		fmt.Println(s)
@@ -63,6 +67,14 @@ func TestInitNilFields(t *testing.T) {
 		body := makeBodyStruct{}
 		apidocbuilder.InitNilFields(&body)
 		b, _ := json.Marshal(&body)
+		s := string(b)
+		fmt.Println(s)
+	})
+
+	t.Run("json.RawMessage", func(t *testing.T) {
+		var d DataJson
+		apidocbuilder.InitNilFields(&d)
+		b, _ := json.Marshal(&d)
 		s := string(b)
 		fmt.Println(s)
 	})
