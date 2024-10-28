@@ -66,7 +66,7 @@ func TestInitNilFields(t *testing.T) {
 	t.Run("complex struct", func(t *testing.T) {
 		body := makeBodyStruct{}
 		apidocbuilder.InitNilFields(&body)
-		b, _ := json.Marshal(&body)
+		b, _ := json.Marshal(body)
 		s := string(b)
 		fmt.Println(s)
 	})
