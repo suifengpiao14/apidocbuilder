@@ -22,7 +22,7 @@ type MakeBodyStructItem struct {
 	Name     string    `json:"name"`
 	Title    string    `json:"title"`
 	UserRef  *userBody `json:"userRef"`
-	user     *userBody
+	User     *userBody
 	UserBody userBody `json:"user"`
 	Data     any      `json:"data"`
 }
@@ -132,7 +132,7 @@ func NewMessage(message string) *sqlbuilder.Field {
 	return sqlbuilder.NewStringField(message, "message", "错误信息", 1024)
 }
 func NewData(data any) *sqlbuilder.Field {
-	return sqlbuilder.NewField(func(_ any) (any, error) {
+	return sqlbuilder.NewField(func(_ any, f *sqlbuilder.Field, fs ...*sqlbuilder.Field) (any, error) {
 		if data == nil {
 			return nil, nil
 		}
