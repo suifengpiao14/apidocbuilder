@@ -343,14 +343,17 @@ func Parameter2TagInput(p Parameter) (tag TagInput) {
 	}
 	realName, _ := isArrayName(p.Name)
 	schema := p.Schema
-
+	min := 0
+	if schema.Minimum != nil {
+		min = *schema.Minimum
+	}
 	tagInput := TagInput{
 		Label:       TagLabel{Label: p.TitleOrDescription()},
 		Name:        realName,
 		Value:       p.Default,
 		Required:    p.Required,
 		Placeholder: p.TitleOrDescription(),
-		Min:         schema.Minimum,
+		Min:         min,
 		Max:         schema.Maximum,
 	}
 	format := p.GetFormat()

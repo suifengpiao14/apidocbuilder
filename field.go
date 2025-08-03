@@ -93,7 +93,7 @@ func Field2DocParam(f *sqlbuilder.Field) (param *Parameter, ok bool) {
 			EnumNames:       EnumNamesStr,
 			Default:         cast.ToString(dbSchema.Default),
 			Maximum:         cast.ToInt(dbSchema.Maximum),
-			Minimum:         dbSchema.Minimum,
+			Minimum:         *dbSchema.Minimum,
 			MaxLength:       dbSchema.MaxLength,
 			MinLength:       dbSchema.MinLength,
 			AllowEmptyValue: dbSchema.AllowEmpty(),

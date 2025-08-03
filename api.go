@@ -1186,7 +1186,7 @@ type Schema struct {
 	// 是否不包含最大项(true-是,false-否)
 	ExclusiveMaximum bool `json:"exclusiveMaximum,omitempty,string"`
 	// 最小值
-	Minimum int `json:"minimum,omitempty,string"`
+	Minimum *int `json:"minimum,omitempty,string"`
 	// 是否不包含最小项(true-是,false-否)
 	ExclusiveMinimum bool `json:"exclusiveMinimum,omitempty,string"`
 	// 最大长度
@@ -1251,6 +1251,10 @@ func (s *Schema) Copy() (copy Schema) {
 }
 
 func (s *Schema) ToLineSchemaItem(fullname string) (lineschemaItem lineschema.LineschemaItem) {
+	minimum := 0
+	if s.Minimum != nil {
+		minimum = *s.Minimum
+	}
 	lineschemaItem = lineschema.LineschemaItem{
 		Comments:         s.Comments,
 		Type:             s.Type,
@@ -1259,7 +1263,7 @@ func (s *Schema) ToLineSchemaItem(fullname string) (lineschemaItem lineschema.Li
 		MultipleOf:       s.MultipleOf,
 		Maximum:          s.Maximum,
 		ExclusiveMaximum: s.ExclusiveMaximum,
-		Minimum:          s.Minimum,
+		Minimum:          minimum,
 		ExclusiveMinimum: s.ExclusiveMinimum,
 		MaxLength:        s.MaxLength,
 		MinLength:        s.MinLength,
@@ -1388,7 +1392,7 @@ func (s *Schema) Merge(os Schema) *Schema {
 	if os.ExclusiveMaximum {
 		s.ExclusiveMaximum = os.ExclusiveMaximum
 	}
-	if os.Minimum > 0 {
+	if os.Minimum != nil && *os.Minimum > 0 {
 		s.Minimum = os.Minimum
 	}
 	if os.ExclusiveMinimum {
