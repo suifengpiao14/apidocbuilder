@@ -72,6 +72,7 @@ func Field2DocParam(f *sqlbuilder.Field) (param *Parameter, ok bool) {
 	EnumNamesStr := strings.Join(enumNames, ", ")
 	format := Format{}
 	format.Add(dbSchema.Format)
+	minimum := dbSchema.Minimum
 	param = &Parameter{
 		Fullname:        f.GetDocName(),
 		Required:        dbSchema.Required,
@@ -93,7 +94,7 @@ func Field2DocParam(f *sqlbuilder.Field) (param *Parameter, ok bool) {
 			EnumNames:       EnumNamesStr,
 			Default:         cast.ToString(dbSchema.Default),
 			Maximum:         cast.ToInt(dbSchema.Maximum),
-			Minimum:         dbSchema.Minimum,
+			Minimum:         minimum,
 			MaxLength:       dbSchema.MaxLength,
 			MinLength:       dbSchema.MinLength,
 			AllowEmptyValue: dbSchema.AllowEmpty(),
