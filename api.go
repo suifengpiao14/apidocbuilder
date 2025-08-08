@@ -683,11 +683,29 @@ func (example *Example) SetResponseBody(response any) *Example {
 
 func InitNilFieldsV0(data any) {
 	v := reflect.ValueOf(data)
+
+	// data 必须是指针
 	if v.Kind() != reflect.Ptr {
 		err := errors.New("InitNilFields data must be a pointer")
 		panic(err)
+		return
 	}
-	initNilFields(v)
+
+	// 如果是指向 nil 指针的指针，比如 **T，尝试自动分配
+	if v.Elem().Kind() == reflect.Ptr && v.Elem().IsNil() {
+		// 创建实例
+		newVal := reflect.New(v.Elem().Type().Elem())
+		// 赋值给指针
+		v.Elem().Set(newVal)
+	}
+
+	// 如果是指针且为 nil，直接返回（没法赋值）
+	if v.Elem().Kind() == reflect.Ptr && v.Elem().IsNil() {
+		return
+	}
+
+	v = v.Elem()
+	initNilValue(v)
 }
 
 func initNilFields(v reflect.Value) {
