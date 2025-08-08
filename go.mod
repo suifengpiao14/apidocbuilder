@@ -9,6 +9,7 @@ require (
 	github.com/spf13/cast v1.7.0
 	github.com/stretchr/testify v1.10.0
 	github.com/suifengpiao14/funcs v0.0.25
+	github.com/suifengpiao14/jsonpathmap v0.0.0-20250808093230-3ae68907d006
 	github.com/suifengpiao14/lineschema v0.0.37
 	github.com/suifengpiao14/lineschemagogenerate v0.0.7
 	github.com/suifengpiao14/pathtransfer v0.0.15

@@ -98,6 +98,13 @@ func (u User) Fields() sqlbuilder.Fields {
 	}
 }
 
+func TestStruct2Fields(t *testing.T) {
+	var user User
+	fields := apidocbuilder.StructToFields(user)
+	args := apidocbuilder.Fields2DocParams(fields...)
+	_ = args
+}
+
 func TestStruct2Parameters(t *testing.T) {
 	user := User{}
 	parameters := apidocbuilder.Struct2Parameters(user)

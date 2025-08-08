@@ -10,13 +10,14 @@ import (
 )
 
 type makeBodyStruct struct {
-	Name               string               `json:"name"`
-	Age                int                  `json:"age"`
-	Address            string               `json:"address"`
-	Items              []MakeBodyStructItem `json:"items"`
-	MakeBodyStructItem `json:"makeBodyStructItem"`
-	Ids                []int          `json:"ids"`
-	Map                map[string]int `json:"map"`
+	Name    string               `json:"name"`
+	Age     int                  `json:"age"`
+	Address string               `json:"address"`
+	Items   []MakeBodyStructItem `json:"items"`
+	MakeBodyStructItem
+	Ids  []int          `json:"ids"`
+	Map  map[string]int `json:"map"`
+	Data any            `json:"data"`
 }
 type MakeBodyStructItem struct {
 	Name     string    `json:"name"`
@@ -38,6 +39,17 @@ type Item struct {
 
 type DataJson struct {
 	Data json.RawMessage `json:"data"`
+}
+
+func TestInitNilFieldsComplex(t *testing.T) {
+	body := makeBodyStruct{
+		Age:  30,
+		Data: []Item{{Name: "a"}, {Name: "b"}},
+	}
+	apidocbuilder.InitNilFields(&body)
+	b, _ := json.Marshal(body)
+	s := string(b)
+	fmt.Println(s)
 }
 
 func TestInitNilFields(t *testing.T) {

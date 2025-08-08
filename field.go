@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cast"
 	"github.com/suifengpiao14/funcs"
+	"github.com/suifengpiao14/jsonpathmap"
 	"github.com/suifengpiao14/sqlbuilder"
 )
 
@@ -25,11 +26,11 @@ func Fields2DocParams(fs ...*sqlbuilder.Field) (params Parameters) {
 
 		switch schema.Type {
 		case sqlbuilder.Schema_doc_Type_null, sqlbuilder.Schema_doc_Type_object, sqlbuilder.Schema_doc_Type_array:
-			docName := f.GetDocName()
+			docName := f.Name
 			objectChildrenPrefix := fmt.Sprintf("%s.", docName)
 			arrayChildrenPrefix := fmt.Sprintf("%s[]", docName)
 			for _, f1 := range fs {
-				if strings.HasPrefix(f1.GetDocName(), objectChildrenPrefix) || strings.HasPrefix(f1.GetDocName(), arrayChildrenPrefix) {
+				if strings.HasPrefix(f1.Name, objectChildrenPrefix) || strings.HasPrefix(f1.Name, arrayChildrenPrefix) {
 					skipNull = true
 					break
 				}
@@ -74,7 +75,7 @@ func Field2DocParam(f *sqlbuilder.Field) (param *Parameter, ok bool) {
 	format.Add(dbSchema.Format)
 	minimum := dbSchema.Minimum
 	param = &Parameter{
-		Fullname:        f.GetDocName(),
+		Fullname:        f.Name,
 		Required:        dbSchema.Required,
 		AllowEmptyValue: dbSchema.AllowEmpty(),
 		Title:           dbSchema.Title,
@@ -113,14 +114,15 @@ func StructFieldCustom(val reflect.Value, structField reflect.StructField, fs sq
 		if !structField.Anonymous { // 嵌入结构体,文档名称不增加前缀
 			for i := 0; i < len(fs); i++ {
 				f := fs[i]
-				docName := f.GetDocName()
+				docName := f.Name
 				if docName != "" && !strings.HasPrefix(docName, "[]") {
 					docName = fmt.Sprintf(".%s", docName)
 				}
 				getJsonTag := getJsonTag(structField)
 				fName := fmt.Sprintf("%s%s", getJsonTag, docName)
 				fName = strings.TrimSuffix(fName, ".")
-				f.SetDocName(fName)
+				f.Name = fName
+
 			}
 		}
 	}
@@ -133,14 +135,22 @@ func ArrayFieldCustom(fs sqlbuilder.Fields) sqlbuilder.Fields {
 		fs = append(fs, f)
 	}
 	for _, f := range fs {
-		fName := fmt.Sprintf("[].%s", f.GetDocName())
+		fName := fmt.Sprintf("[].%s", f.Name)
 		fName = strings.TrimSuffix(fName, ".")
-		f.SetDocName(fName) //设置列名称,f 本身为指针，直接修改f.Name
+		f.Name = fName
+
 	}
 	return fs
 }
 
 func StructToFields(stru any) sqlbuilder.Fields {
+	fs := sqlbuilder.Fields{}
+	pvs, err := jsonpathmap.FlattenJSON(stru)
+	if err != nil {
+		return fs
+	}
+	fmt.Println(pvs)
+
 	return sqlbuilder.StructToFields(stru, StructFieldCustom, ArrayFieldCustom)
 }
 
@@ -158,6 +168,7 @@ func getJsonTag(val reflect.StructField) (jsonTag string) {
 // Struct2ParametersWithFields 根据结构体生成参数，并补全文档信息
 func Struct2ParametersWithFields(stru any, fs ...*sqlbuilder.Field) (parameters Parameters) {
 	allFields := StructToFields(stru)
+
 	allFields = append(allFields, fs...)
 	allParams := Fields2DocParams(allFields...)
 	return Struct2Parameters(stru).Complement(allParams...)

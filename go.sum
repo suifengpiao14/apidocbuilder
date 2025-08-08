@@ -105,6 +105,8 @@ github.com/suifengpiao14/funcs v0.0.25 h1:6WIUtCdNJbAv2MAvTx7v+q4xvaeQH1HpnTykkM
 github.com/suifengpiao14/funcs v0.0.25/go.mod h1:g95inzlUrS2Vtyvv5SjVFOnOeX7ZBPWwyKuEMMW+g7U=
 github.com/suifengpiao14/gjsonmodifier v0.2.2 h1:sWc7htKEoWc0G4ZnmyPGR6Rg7/0dPjKmsXzVEFhX1Rc=
 github.com/suifengpiao14/gjsonmodifier v0.2.2/go.mod h1:cYW5OJUld4QJCwIXS7qj9EENUTFyzy8tPyNdCpHvRUs=
+github.com/suifengpiao14/jsonpathmap v0.0.0-20250808093230-3ae68907d006 h1:hrzHio2tx4PY2fJRQMfhsJ6LyI7bnKg3qQDvzZFkHAA=
+github.com/suifengpiao14/jsonpathmap v0.0.0-20250808093230-3ae68907d006/go.mod h1:xeOSQJx6uRGzcaUym3KGJ6TuDRhf0VWWDPvowKuWcpY=
 github.com/suifengpiao14/kvstruct v0.0.15 h1:9YDFHDPxHTC7FUBrCGciTlCF7Bn9Ga5ubV7f9o7Cwco=
 github.com/suifengpiao14/kvstruct v0.0.15/go.mod h1:9w+H1qdUnmOvYXpHDAdyRf3+zEGzpjpttDup0VJ479o=
 github.com/suifengpiao14/lineschema v0.0.37 h1:FEBU1orQpCeu3oLHs6Dahgb73g65+eVI3W1K7STJLZ4=

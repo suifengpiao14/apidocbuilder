@@ -681,7 +681,7 @@ func (example *Example) SetResponseBody(response any) *Example {
 	return example
 }
 
-func InitNilFields(data any) {
+func InitNilFieldsV0(data any) {
 	v := reflect.ValueOf(data)
 	if v.Kind() != reflect.Ptr {
 		err := errors.New("InitNilFields data must be a pointer")
@@ -727,6 +727,154 @@ func initNilFields(v reflect.Value) {
 		}
 		for i := 0; i < v.Len(); i++ {
 			initNilFields(v.Index(i))
+		}
+	}
+}
+
+func InitNilFields(data any) {
+	v := reflect.ValueOf(data)
+	if v.Kind() != reflect.Ptr || v.IsNil() {
+		// 必须是非 nil 指针
+		return
+	}
+	v = v.Elem()
+	initNilValue(v)
+}
+
+func initNilValue(v reflect.Value) {
+	switch v.Kind() {
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			fv := v.Field(i)
+			if !fv.CanSet() {
+				continue
+			}
+			ft := v.Type().Field(i)
+
+			// 递归处理结构体字段
+			switch fv.Kind() {
+			case reflect.Ptr:
+				if fv.IsNil() {
+					newVal := reflect.New(fv.Type().Elem())
+					fv.Set(newVal)
+				}
+				initNilValue(fv.Elem())
+			case reflect.Struct:
+				initNilValue(fv)
+			case reflect.Slice:
+				if fv.IsNil() || fv.Len() == 0 {
+					elemType := fv.Type().Elem()
+					newSlice := reflect.MakeSlice(fv.Type(), 1, 1)
+					// 只有元素为结构体或指针才递归初始化第一个元素
+					if elemType.Kind() == reflect.Struct {
+						initNilValue(newSlice.Index(0))
+					} else if elemType.Kind() == reflect.Ptr {
+						// 初始化指针元素
+						ptr := reflect.New(elemType.Elem())
+						newSlice.Index(0).Set(ptr)
+						initNilValue(ptr.Elem())
+					}
+					fv.Set(newSlice)
+				} else {
+					// 非空切片，递归初始化每个元素
+					for j := 0; j < fv.Len(); j++ {
+						initNilValue(fv.Index(j))
+					}
+				}
+			case reflect.Map:
+				if fv.IsNil() {
+					newMap := reflect.MakeMap(fv.Type())
+					keyType := fv.Type().Key()
+					elemType := fv.Type().Elem()
+
+					// 构造 key 默认值，零值即可
+					key := reflect.Zero(keyType)
+					val := reflect.Zero(elemType)
+
+					// 如果值是结构体或指针则递归初始化
+					if elemType.Kind() == reflect.Struct {
+						initNilValue(val)
+					} else if elemType.Kind() == reflect.Ptr {
+						ptr := reflect.New(elemType.Elem())
+						val = ptr
+						initNilValue(ptr.Elem())
+					}
+					newMap.SetMapIndex(key, val)
+					fv.Set(newMap)
+				} else {
+					// 非空 map 递归初始化每个 value
+					for _, key := range fv.MapKeys() {
+						val := fv.MapIndex(key)
+						if val.Kind() == reflect.Ptr && val.IsNil() {
+							ptr := reflect.New(val.Type().Elem())
+							fv.SetMapIndex(key, ptr)
+							initNilValue(ptr.Elem())
+						} else if val.Kind() == reflect.Struct {
+							initNilValue(val)
+						}
+					}
+				}
+			default:
+				// 基础类型、interface等不处理
+			}
+
+			// 额外：处理匿名字段（嵌入字段）
+			if ft.Anonymous {
+				// 匿名字段一般是结构体，递归初始化
+				initNilValue(fv)
+			}
+		}
+
+	case reflect.Ptr:
+		if v.IsNil() {
+			newVal := reflect.New(v.Type().Elem())
+			v.Set(newVal)
+		}
+		initNilValue(v.Elem())
+	case reflect.Slice:
+		if v.IsNil() || v.Len() == 0 {
+			elemType := v.Type().Elem()
+			newSlice := reflect.MakeSlice(v.Type(), 1, 1)
+			if elemType.Kind() == reflect.Struct {
+				initNilValue(newSlice.Index(0))
+			} else if elemType.Kind() == reflect.Ptr {
+				ptr := reflect.New(elemType.Elem())
+				newSlice.Index(0).Set(ptr)
+				initNilValue(ptr.Elem())
+			}
+			v.Set(newSlice)
+		} else {
+			for i := 0; i < v.Len(); i++ {
+				initNilValue(v.Index(i))
+			}
+		}
+	case reflect.Map:
+		if v.IsNil() {
+			newMap := reflect.MakeMap(v.Type())
+			keyType := v.Type().Key()
+			elemType := v.Type().Elem()
+			key := reflect.Zero(keyType)
+			val := reflect.Zero(elemType)
+			if elemType.Kind() == reflect.Struct {
+				initNilValue(val)
+			} else if elemType.Kind() == reflect.Ptr {
+				ptr := reflect.New(elemType.Elem())
+				val = ptr
+				initNilValue(ptr.Elem())
+			}
+			newMap.SetMapIndex(key, val)
+			v.Set(newMap)
+		} else {
+			for _, key := range v.MapKeys() {
+				val := v.MapIndex(key)
+				if val.Kind() == reflect.Ptr && val.IsNil() {
+					ptr := reflect.New(val.Type().Elem())
+					v.SetMapIndex(key, ptr)
+					initNilValue(ptr.Elem())
+				} else if val.Kind() == reflect.Struct {
+					initNilValue(val)
+				}
+			}
 		}
 	}
 }
