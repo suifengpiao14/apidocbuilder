@@ -688,7 +688,6 @@ func InitNilFieldsV0(data any) {
 	if v.Kind() != reflect.Ptr {
 		err := errors.New("InitNilFields data must be a pointer")
 		panic(err)
-		return
 	}
 
 	// 如果是指向 nil 指针的指针，比如 **T，尝试自动分配
