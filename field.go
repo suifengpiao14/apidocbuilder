@@ -145,13 +145,20 @@ func ArrayFieldCustom(fs sqlbuilder.Fields) sqlbuilder.Fields {
 
 func StructToFields(stru any) sqlbuilder.Fields {
 	fs := sqlbuilder.Fields{}
+	InitNilFields(stru) // 初始化所有字段
 	pvs, err := jsonpathmap.FlattenJSON(stru)
 	if err != nil {
 		return fs
 	}
-	fmt.Println(pvs)
+	pvs = pvs.NormalizeArrayPath()
+	for _, pv := range pvs {
+		f := sqlbuilder.Field{Name: pv.Path, Schema: &sqlbuilder.Schema{Default: pv.Value}}
+		fs = append(fs, &f)
+	}
+	return fs
+	//fmt.Println(pvs)
 
-	return sqlbuilder.StructToFields(stru, StructFieldCustom, ArrayFieldCustom)
+	//return sqlbuilder.StructToFields(stru, StructFieldCustom, ArrayFieldCustom)
 }
 
 func getJsonTag(val reflect.StructField) (jsonTag string) {
